@@ -1,25 +1,44 @@
-import React from 'react';
-import logo from './logo.svg';
-import './App.css';
+/**
+ * Мониторинг PR
+ * 
+ * Copyright (C) 2024. Разработано в компании «Реарт»
+ * reart.ru
+ */
 
-function App() {
+import React from 'react';
+import { BrowserRouter as Router, Route, Routes } from 'react-router-dom';
+import './App.css';
+import Header from './components/Header';
+import Sidebar from './components/Sidebar';
+import Content from './pages/Content';
+import News from './pages/News';
+import AddNews from './pages/AddNews';
+import Stat from './pages/Stat';
+import Planned from './pages/Planned';
+import Table from './pages/Table';
+import Chart from './pages/Chart';
+
+const App: React.FC = () => {
   return (
-    <div className="App">
-      <header className="App-header">
-        <img src={logo} className="App-logo" alt="logo" />
-        <p>
-          Edit <code>src/App.tsx</code> and save to reload.
-        </p>
-        <a
-          className="App-link"
-          href="https://reactjs.org"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          Learn React
-        </a>
-      </header>
-    </div>
+    <Router>
+      <div className="app">
+        <Header />
+        <div className="main">
+          <Sidebar />
+          <div className="content">
+            <Routes>
+              <Route path="/" element={<Content />} />
+              <Route path="/news" element={<News />} />
+              <Route path="/add-news/:id?" element={<AddNews />} />
+              <Route path="/stat" element={<Stat />} />
+              <Route path="/planned" element={<Planned />} />
+              <Route path="/table" element={<Table />} />
+              <Route path="/chart" element={<Chart />} />
+            </Routes>
+          </div>
+        </div>
+      </div>
+    </Router>
   );
 }
 
