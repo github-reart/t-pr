@@ -1,6 +1,5 @@
 import React, { useState } from 'react';
 import { userData, UserData } from '../userData';
-import bcrypt from 'bcryptjs';
 
 interface UserProps {
   setIsAuthenticated: React.Dispatch<React.SetStateAction<boolean>>;
@@ -11,20 +10,41 @@ const User: React.FC<UserProps> = ({ setIsAuthenticated }) => {
   const [password, setPassword] = useState<string>('');
   const [user, setUser] = useState<string | null>(localStorage.getItem('user'));
 
-  const handleLogin = (e: React.FormEvent) => {
+    // Функция для создания хеша пароля
+  const hashPassword = async (password: string): Promise<string> => {
+    const encoder = new TextEncoder();
+    const data = encoder.encode(password);
+    const hashBuffer = await crypto.subtle.digest('SHA-256', data);
+    const hashArray = Array.from(new Uint8Array(hashBuffer));
+    const hashHex = hashArray.map(b => ('00' + b.toString(16)).slice(-2)).join('');
+    return hashHex;
+  };
+
+  const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     const foundUser: UserData | undefined = userData.find(user => user.name === username);
-
-    if (foundUser && bcrypt.compareSync(password, foundUser.pass)) {
-      setUser(foundUser.name);
-      localStorage.setItem('user', foundUser.name);
-      localStorage.setItem('pass', password); // Сохраняем пароль в открытом виде
-      setIsAuthenticated(true); // Устанавливаем авторизацию в родительском компоненте
-      window.location.href = '/news'; // перенаправление на главную страницу
+  
+    if (foundUser) {
+      const hashedPassword = await hashPassword(password);
+      
+      // Сравниваем хеши паролей
+      if (hashedPassword === foundUser.pass) {
+        console.log("Пароль успешно аутентифицирован.");
+  
+        setUser(foundUser.name);
+        localStorage.setItem('user', foundUser.name);
+        localStorage.setItem('pass', hashedPassword); // Сохраняем хеш пароля
+        setIsAuthenticated(true); // Устанавливаем авторизацию в родительском компоненте
+        window.location.href = '/news'; // Перенаправление на главную страницу
+      } else {
+        alert('Неверный логин или пароль');
+      }
     } else {
       alert('Неверный логин или пароль');
     }
   };
+  
+
 
   const handleLogout = () => {
     setUser(null);

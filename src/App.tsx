@@ -18,19 +18,18 @@ import Table from './pages/Table';
 import Chart from './pages/Chart';
 import User from './pages/User';
 import { userData } from './userData';
-import bcrypt from 'bcryptjs';
 
 const App: React.FC = () => {
   const [isAuthenticated, setIsAuthenticated] = React.useState<boolean>(false);
 
   React.useEffect(() => {
     const storedUser = localStorage.getItem('user');
-    const storedPassword = localStorage.getItem('pass');
-    
-    if (storedUser && storedPassword) {
+    const storedPasswordHash = localStorage.getItem('pass'); // Хеш пароля
+
+    if (storedUser && storedPasswordHash) {
       const foundUser = userData.find(user => user.name === storedUser);
       
-      if (foundUser && bcrypt.compareSync(storedPassword, foundUser.pass)) {
+      if (foundUser && storedPasswordHash === foundUser.pass) {
         setIsAuthenticated(true);
       }
     }
@@ -67,7 +66,3 @@ const App: React.FC = () => {
 }
 
 export default App;
-
-
-
-
