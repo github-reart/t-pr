@@ -23,7 +23,6 @@ const Sidebar: React.FC<SidebarProps> = ({ isAuthenticated }) => {
     return isActive(path) ? 'sidebar-button active' : 'sidebar-button';
   };
 
-  const user = localStorage.getItem('user');
   const renderLinks = () => {
     return (
       <>

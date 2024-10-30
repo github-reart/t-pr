@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Link } from 'react-router-dom';
+// import { Link } from 'react-router-dom';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faExpandArrowsAlt, faFileExcel, faAngleLeft, faAngleRight } from '@fortawesome/free-solid-svg-icons';
 import { newsData, locationData, typeData, plannedData } from '../data';

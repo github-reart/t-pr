@@ -180,7 +180,7 @@ const downloadXLS = async () => {
 
     let i=1;
     data.forEach(row => {
-      if (i == 1) { //Первая строка с датами месяца
+      if (i === 1) { //Первая строка с датами месяца
         const headerRowValues = worksheet.addRow(row);  
         headerRowValues.eachCell((cell, colNumber) => {
             cell.fill = {
