@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faExpandArrowsAlt, faArrowAltCircleDown, faAngleLeft, faAngleRight } from '@fortawesome/free-solid-svg-icons';
+import { faExpandArrowsAlt, faFileExcel, faAngleLeft, faAngleRight } from '@fortawesome/free-solid-svg-icons';
 import { newsData, locationData, typeData, plannedData } from '../data';
 import ExcelJS from 'exceljs';
 
@@ -190,7 +190,7 @@ const Table: React.FC = () => {
                         <div className="currentPeriod">{selectedYear}</div>
                         <button className="arrow" onClick={() => setSelectedYear(selectedYear + 1)}>{selectedYear + 1} <FontAwesomeIcon icon={faAngleRight} /></button>
                         <button onClick={handleDownload}>
-                          <FontAwesomeIcon icon={faArrowAltCircleDown} title="Скачать XLS" />
+                          <FontAwesomeIcon icon={faFileExcel} title="Скачать XLS" />
                         </button>
                         <button onClick={toggleFullscreen}>
                           <FontAwesomeIcon icon={faExpandArrowsAlt} title='Полный экран' />

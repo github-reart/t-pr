@@ -14,7 +14,7 @@ import {
 import jsPDF from 'jspdf';
 import html2canvas from 'html2canvas';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faExpandArrowsAlt, faArrowAltCircleDown, faAngleLeft, faAngleRight } from '@fortawesome/free-solid-svg-icons';
+import { faExpandArrowsAlt, faFilePdf, faAngleLeft, faAngleRight } from '@fortawesome/free-solid-svg-icons';
 import { newsData, plannedData, typeData, locationData } from '../data';
 
 interface DataPoint {
@@ -205,7 +205,7 @@ const Chart: React.FC = () => {
             {nextMonth} <FontAwesomeIcon icon={faAngleRight} />
           </button>
           <button onClick={downloadPDF}>
-            <FontAwesomeIcon icon={faArrowAltCircleDown} title='Скачать PDF' />
+            <FontAwesomeIcon icon={faFilePdf} title='Скачать PDF' />
           </button>          
           <button onClick={toggleFullscreen}>
               <FontAwesomeIcon icon={faExpandArrowsAlt} title='Полный экран' />

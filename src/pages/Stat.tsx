@@ -3,7 +3,8 @@ import { useLocation } from 'react-router-dom';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import jsPDF from 'jspdf';
 import html2canvas from 'html2canvas';
-import { faExpandArrowsAlt, faArrowAltCircleDown, faAngleLeft, faAngleRight } from '@fortawesome/free-solid-svg-icons';
+import ExcelJS from 'exceljs';
+import { faExpandArrowsAlt, faFilePdf, faFileExcel, faAngleLeft, faAngleRight } from '@fortawesome/free-solid-svg-icons';
 import { newsData, locationData, typeData } from '../data';
 
 const getCurrentMonth = (): string => {
@@ -23,8 +24,9 @@ const Stat: React.FC = () => {
   const isGen = params.has('gen');
 
   const headerTitle = isSbyt ? 'Статистика Сбыт' : isGen ? 'Статистика Генерация' : 'Нет данных';
+  const statType = isSbyt ? 'sbyt' : isGen ? 'gen' : '';
 
-  const [currentMonth, setCurrentMonth] = useState(getCurrentMonth());
+  const [currentMonth, setCurrentMonth] = useState<string>(getCurrentMonth());
 
   const getDaysInMonth = (dateString: string): number => {
     const date = new Date(`${dateString}-01`);
@@ -50,7 +52,7 @@ const Stat: React.FC = () => {
   const previousMonth = new Date(currentDate.getFullYear(), currentDate.getMonth() - 1, 1).toLocaleString('ru', { month: 'long' });
   const nextMonth = new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 1).toLocaleString('ru', { month: 'long' });
 
-  const [isFullscreen, setIsFullscreen] = useState(false);
+  const [isFullscreen, setIsFullscreen] = useState<boolean>(false);
 
   const toggleFullscreen = () => {
       if (!isFullscreen) {
@@ -74,31 +76,28 @@ const Stat: React.FC = () => {
 const downloadPDF = async () => {
   const doc = new jsPDF('p', 'px', 'a4'); 
   const tableElement = document.getElementById('saveBlock');
-
+  
   if (tableElement) {
     const elementsToHide = document.querySelectorAll('.nosave');
     elementsToHide.forEach(element => {
       element.classList.add('hide');
     });
 
-    const canvas = await html2canvas(tableElement, { scale: 2 }); // Увеличиваем разрешение
+    const canvas = await html2canvas(tableElement, { scale: 2 }); 
     const imgData = canvas.toDataURL('image/png');
-    
-    // Определяем ширину и высоту для изображения
-    const pageWidth = doc.internal.pageSize.getWidth(); // Полная ширина страницы
+
+    const pageWidth = doc.internal.pageSize.getWidth();
     const pageHeight = doc.internal.pageSize.getHeight();
     
-    const imgWidth = pageWidth - 40; // Ширина изображения с полями 20px с каждой стороны
-    const imgHeight = (canvas.height * imgWidth) / canvas.width; // Пропорциональная высота
+    const imgWidth = pageWidth - 40; 
+    const imgHeight = (canvas.height * imgWidth) / canvas.width; 
 
     let heightLeft = imgHeight;
-    let position = 10; // Отступ сверху
+    let position = 10; 
 
-    // Добавляем первое изображение
-    doc.addImage(imgData, 'PNG', 20, position, imgWidth, imgHeight); // Левый отступ 20px
+    doc.addImage(imgData, 'PNG', 20, position, imgWidth, imgHeight);
     heightLeft -= (pageHeight - position);
 
-    // Добавляем дополнительные страницы, если это необходимо
     while (heightLeft >= 0) {
       position = heightLeft - imgHeight;
       doc.addPage();
@@ -106,28 +105,135 @@ const downloadPDF = async () => {
       heightLeft -= pageHeight;
     }
 
-    doc.save(`pr-stat-${currentMonth}.pdf`);
+    doc.save(`pr-stat-${statType}-${currentMonth}.pdf`);
 
-    // Отображаем элементы снова
     elementsToHide.forEach(element => {
       element.classList.remove('hide');
     });
   }
 };
 
+const downloadXLS = async () => {
+  const workbook = new ExcelJS.Workbook();
+  const worksheet = workbook.addWorksheet('Статистика');
+
+  // Установка заголовка с жирным текстом
+  worksheet.getCell('A1').value = `${headerTitle} ${currentMonthName} ${currentDate.getFullYear()}`;
+  worksheet.getCell('A1').font = { bold: true, size: 14 };
+  // Пустая вторая строка
+  worksheet.addRow([]);
+
+  type TableData = {
+    title: string;
+    data: Array<Array<number | string>>;
+  };
+
+  const tableData: TableData[] = [];
+
+  typeData.forEach(typeItem => {
+    let data: Array<Array<number | string>> = [];
+    let header = [`Площадка/число`, ...Array.from({ length: daysInMonth }, (_, day) => day + 1), 'Всего'];
+
+    data.push(header);
+
+
+    locationData.forEach(locationItem => {
+      const shouldDisplay =
+        (isSbyt && locationItem.name.includes("Сбыт")) || 
+        (isGen && locationItem.name.includes("Генерация"));
+
+      if (!shouldDisplay) return;
+
+      const newsCountPerDay = Array(daysInMonth).fill(0);
+      let totalNewsCount = 0;
+
+      newsData.forEach(newsItem => {
+        const newsDate = new Date(newsItem.publicationDate);
+        const newsDay = newsDate.getDate();
+        const newsLocation = newsItem.location;
+        const newsType = newsItem.type;
+
+        if (newsDate.getFullYear() === currentDate.getFullYear() && 
+            newsDate.getMonth() === currentDate.getMonth() &&
+            newsLocation === locationItem.id && 
+            newsType === typeItem.id) {
+          newsCountPerDay[newsDay - 1] += 1;
+          totalNewsCount += 1;
+        }
+      });
+
+      const row = [locationItem.name, ...newsCountPerDay, totalNewsCount];
+      data.push(row);
+    });
+
+    tableData.push({ title: typeItem.name, data });
+  });
+
+  // Заполнение таблицы в Excel
+  tableData.forEach(({ title, data }) => {
+    const headerRowValues = worksheet.addRow([title]);  
+    headerRowValues.eachCell((cell, colNumber) => {
+        cell.font = {
+            bold: true,
+        };
+    });
+
+    let i=1;
+    data.forEach(row => {
+      if (i == 1) { //Первая строка с датами месяца
+        const headerRowValues = worksheet.addRow(row);  
+        headerRowValues.eachCell((cell, colNumber) => {
+            cell.fill = {
+                type: 'pattern',
+                pattern: 'solid',
+                fgColor: { argb: 'FF808A96' },
+            };
+            cell.font = {
+                color: { argb: 'FFFFFFFF' },
+            };
+            cell.alignment = { 
+              vertical: 'middle' 
+            }; 
+            i++;
+        });
+      } else {
+        worksheet.addRow(row); // Данные        
+      }
+    });
+    worksheet.addRow([]); // Пустая строка
+  });
+
+  // Установка ширины и стилей
+  worksheet.getColumn(1).width = 20; // Установка ширины для 1 столбца
+  for (let colNumber = 2; colNumber <= worksheet.columnCount; colNumber++) {
+    worksheet.getColumn(colNumber).width = 3; // Установка ширины для остальных столбцов
+    worksheet.getColumn(colNumber).alignment = { horizontal: 'center', vertical: 'middle' }; // Выровнять по центру
+  }
+  worksheet.getColumn(worksheet.columnCount).width = 5; // Установка ширины для последнего столбца
+
+  // Скачивание файла
+  const buffer = await workbook.xlsx.writeBuffer();
+  const blob = new Blob([buffer], { type: 'application/octet-stream' });
+  const link = document.createElement('a');
+  link.href = window.URL.createObjectURL(blob);  
+  link.download = `pr-stat-${statType}-${currentMonth}.xlsx`;
+  link.click();
+};
+
+
   return (
     <>
       <div id="saveBlock" className={`table-container ${isFullscreen ? 'fullscreen' : ''}`}
           style={{
             marginBottom: '100px',
-          position: isFullscreen ? 'fixed' : 'relative',
-          top: 0,
-          left: 0,
-          width: isFullscreen ? '100vw' : 'auto',
-          height: isFullscreen ? '100vh' : 'auto',
-          backgroundColor: isFullscreen ? 'white' : 'transparent',
-          zIndex: isFullscreen ? 9999 : 'auto',
-          overflow: isFullscreen ? 'auto' : 'visible'
+            position: isFullscreen ? 'fixed' : 'relative',
+            top: 0,
+            left: 0,
+            width: isFullscreen ? '100vw' : 'auto',
+            height: isFullscreen ? '100vh' : 'auto',
+            backgroundColor: isFullscreen ? 'white' : 'transparent',
+            zIndex: isFullscreen ? 9999 : 'auto',
+            overflow: isFullscreen ? 'auto' : 'visible'
           }}      
       >
       <div className="header-container">
@@ -141,8 +247,11 @@ const downloadPDF = async () => {
             {nextMonth} <FontAwesomeIcon icon={faAngleRight} />
           </button>
           <button onClick={downloadPDF}>
-            <FontAwesomeIcon icon={faArrowAltCircleDown} title='Скачать PDF' />
-          </button>          
+            <FontAwesomeIcon icon={faFilePdf} title='Скачать PDF' />
+          </button>
+          <button onClick={downloadXLS}>
+            <FontAwesomeIcon icon={faFileExcel} title='Скачать XLS' />
+          </button>
           <button onClick={toggleFullscreen}>
               <FontAwesomeIcon icon={faExpandArrowsAlt} title='Полный экран' />
           </button>          
@@ -170,7 +279,6 @@ const downloadPDF = async () => {
                 
                 if (!shouldDisplay) return null;
 
-                // Подсчет новостей по дням
                 const newsCountPerDay = Array(daysInMonth).fill(0);
                 let totalNewsCount = 0;
 
@@ -180,7 +288,6 @@ const downloadPDF = async () => {
                   const newsLocation = newsItem.location;
                   const newsType = newsItem.type;
 
-                  // Проверяем условия
                   if (newsDate.getFullYear() === currentDate.getFullYear() && 
                       newsDate.getMonth() === currentDate.getMonth() &&
                       newsLocation === locationItem.id && 
@@ -194,7 +301,6 @@ const downloadPDF = async () => {
                   <tr key={locationItem.id}>
                     <td>{locationItem.name}</td>
                     {newsCountPerDay.map((count, index) => {
-                      // Определяем, является ли день выходным (суббота или воскресенье)
                       const isWeekend = new Date(currentDate.getFullYear(), currentDate.getMonth(), index + 1).getDay() === 0 ||
                                         new Date(currentDate.getFullYear(), currentDate.getMonth(), index + 1).getDay() === 6;
 
@@ -202,7 +308,7 @@ const downloadPDF = async () => {
                         <td key={index + 1} className={isWeekend ? 'week' : ''}>{count}</td>
                       );
                     })}
-                    <td>{totalNewsCount}</td> {/* Суммарное количество новостей */}
+                    <td>{totalNewsCount}</td>
                   </tr>
                 );
               })}

@@ -6,14 +6,6 @@ a {
   color: #F15922;
 }
 
-button {
-  background-color: #F15922;
-  color: #FFF;
-  border: none;
-  padding: 10px 20px;
-  font-size: 14px;
-}
-
 select {
   font-size: 14px;
 }
@@ -132,6 +124,10 @@ textarea {
 .sidebar-button.active {
   background-color: #F15922;
   color: #FFF;
+}
+
+.sidebar-button.active:hover {
+  background-color: darkorange;
 }
 
 .sub-menu {
@@ -491,4 +487,92 @@ textarea {
 
 .hide {
   display: none !important;
+}
+
+
+button,
+.add-news-button button {
+  background-color: #F15922;
+  color: #FFF;
+  border: none;
+  padding: 10px 20px;
+  font-size: 14px;
+}
+
+.add-news-button {
+  margin-left: 60px;
+}
+
+.add-news-button button:hover {
+  background-color: darkorange;
+}
+
+.top-buttons select {
+  margin-right: 60px;
+  border: none;
+  background-color: #EBEDF0;
+}
+
+.top-buttons input[type="date"] {
+  margin-left: 5px;
+  margin-right: 5px;
+  border: 1px solid #808A96;
+  font-size: 16px;
+  padding: 5px 10px;  
+  background-color: #FFF;
+}
+
+.top-buttons .calendar-button {
+  border: 1px solid #475466;
+  background-color: #475466;
+  font-size: 16px;
+  padding: 7px 10px;
+  color: #FFF;
+}
+
+.top-buttons .reset-button {
+  font-size: 16px;
+  border: 1px solid #475466;
+  background-color: #FFF;
+  color: #475466;
+  border-color: #475466;
+  padding: 7px 10px;
+}
+
+.top-buttons .calendar-button:hover,
+.top-buttons .reset-button:hover {
+  border-color: #EBEDF0;
+  background-color: #EBEDF0;
+  color: #F15922;
+}
+
+.top-buttons .calendar-button svg,
+.top-buttons .reset-button svg {
+  margin-right: 5px;
+}
+
+.user-form {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  height: calc(100vh - 65px);
+}
+
+.user-form h2 {
+  margin-bottom: 20px;
+}
+
+.user-form .form {
+  width: 300px;
+}
+
+.user-form input {
+  margin-bottom: 5px;
+  margin-top: 5px;
+}
+
+.user-form button {
+  padding: 10px 20px;
+  cursor: pointer;
 }
