@@ -56,7 +56,6 @@ const App: React.FC = () => {
                   <Route path="/chart" element={<Chart />} />
                 </>
               ) : (
-                // <Navigate to="/user" />
                 <Route path="/" element={<Navigate to="/user" />} />
               )}
             </Routes>

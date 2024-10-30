@@ -20,7 +20,7 @@ const User: React.FC<UserProps> = ({ setIsAuthenticated }) => {
       localStorage.setItem('user', foundUser.name);
       localStorage.setItem('pass', password); // Сохраняем пароль в открытом виде
       setIsAuthenticated(true); // Устанавливаем авторизацию в родительском компоненте
-      window.location.href = '/'; // перенаправление на главную страницу
+      window.location.href = '/news'; // перенаправление на главную страницу
     } else {
       alert('Неверный логин или пароль');
     }

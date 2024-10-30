@@ -20,7 +20,6 @@
     "noEmit": true,
     "jsx": "react-jsx"
   },
-  "include": [
-    "src"
-  ]
+  "include": ["src"], // Указывает, какие файлы компилировать
+  "exclude": ["node_modules"] 
 }
