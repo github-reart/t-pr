@@ -1,21 +1,11 @@
 export interface UserData {
   id: number;
   name: string;
-  pass: string; // Храните как хеш, полученный с помощью SHA-256
+  pass: string;
 }
 
-// Функция для создания хеша пароля
-const hashPassword = async (password: string): Promise<string> => {
-  const encoder = new TextEncoder();
-  const data = encoder.encode(password);
-  const hashBuffer = await crypto.subtle.digest('SHA-256', data);
-  const hashArray = Array.from(new Uint8Array(hashBuffer));
-  const hashHex = hashArray.map(b => ('00' + b.toString(16)).slice(-2)).join('');
-  return hashHex;
-};
-
 export const userData: UserData[] = [
-  { id: 1, name: "admin", pass: await hashPassword("admin") },
-  { id: 2, name: "user", pass: await hashPassword("user") },
-  { id: 3, name: "test", pass: await hashPassword("test") },
+  { id: 1, name: "admin", pass: "8c6976e5b5410415bde908bd4dee15dfb167a9c873fc4bb8a81f6f2ab448a918" },
+  { id: 2, name: "user", pass: "04f8996da763b7a969b1028ee3007569eaf3a635486ddab211d512c85b9df8fb" },
+  { id: 3, name: "test", pass: "9f86d081884c7d659a2feaa0c55ad015a3bf4f1b2b0b822cd15d6c15b0f00a08" },
 ];

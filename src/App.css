@@ -522,6 +522,8 @@ button,
   background-color: #FFF;
 }
 
+
+
 .top-buttons .calendar-button {
   border: 1px solid #475466;
   background-color: #475466;
@@ -575,4 +577,23 @@ button,
 .user-form button {
   padding: 10px 20px;
   cursor: pointer;
+}
+
+
+.userAddBlock input {
+  margin-left: 5px;
+  margin-right: 5px;
+}
+
+.user-change {
+  border: 1px solid #475466;
+  background-color: #FFF;
+  color: #475466;
+}
+
+.user-del {
+  border: none;
+  background-color: #475466;
+  color: #FFF;
+  margin-left: 10px;
 }
