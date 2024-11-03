@@ -13,13 +13,13 @@
     "strict": true,
     "forceConsistentCasingInFileNames": true,
     "noFallthroughCasesInSwitch": true,
-    "module": "esnext",
-    "moduleResolution": "node",
+    "module": "NodeNext",
+    "moduleResolution": "NodeNext",
     "resolveJsonModule": true,
     "isolatedModules": true,
     "noEmit": true,
     "jsx": "react-jsx"
   },
-  "include": ["src"], // Указывает, какие файлы компилировать
+  "include": ["src", "server/**/*"], // Указывает, какие файлы компилировать
   "exclude": ["node_modules"] 
 }

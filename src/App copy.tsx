@@ -17,41 +17,30 @@ import Planned from './pages/Planned';
 import Table from './pages/Table';
 import Chart from './pages/Chart';
 import User from './pages/User';
-import { UserProvider, useUserContext } from './components/UserContext';
-import { fetchData } from './api';
+import { userData } from './userData';
 
 const App: React.FC = () => {
   const [isAuthenticated, setIsAuthenticated] = React.useState<boolean>(false);
-  const { setUserData } = useUserContext(); // Используем контекст
 
   React.useEffect(() => {
-    const authenticate = async () => {
-      const username = localStorage.getItem('user');
-      const hashedPassword = localStorage.getItem('pass');
+    const storedUser = localStorage.getItem('user');
+    const storedPasswordHash = localStorage.getItem('pass'); // Хеш пароля
 
-      if (username && hashedPassword) {
-        try {
-          const result = await fetchData('/api/auth', 'POST', { name: username, pass: hashedPassword });
-
-          if (result?.success) {
-            setIsAuthenticated(true);
-            setUserData(result.user.name, result.user.id, result.user.pass);
-          }
-        } catch (err) {
-          console.error('Ошибка при входе:', err);
-        }
+    if (storedUser && storedPasswordHash) {
+      const foundUser = userData.find(user => user.name === storedUser);
+      
+      if (foundUser && storedPasswordHash === foundUser.pass) {
+        setIsAuthenticated(true);
       }
-    };
-
-    authenticate();
-  }, [setUserData]);
+    }
+  }, []);
 
   return (
     <Router>
       <div className="app">
         <Header />
         <div className="main">
-          <Sidebar isAuthenticated={isAuthenticated} />
+          <Sidebar isAuthenticated={isAuthenticated} /> {/* Передаем isAuthenticated в Sidebar */}
           <div className="content">
             <Routes>
               <Route path="/user" element={<User setIsAuthenticated={setIsAuthenticated} />} />
@@ -76,10 +65,4 @@ const App: React.FC = () => {
   );
 }
 
-const MainApp: React.FC = () => (
-  <UserProvider>
-    <App />
-  </UserProvider>
-);
-
-export default MainApp;
+export default App;

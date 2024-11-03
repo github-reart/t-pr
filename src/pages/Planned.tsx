@@ -1,34 +1,60 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import CustomModal from '../components/CustomModal';
-import { locationData, typeData, plannedData } from '../data';
+import { fetchData } from '../api';
 
-interface FormData {
-  location: string;
-  type: string;
+interface Location {
+  id: number;
+  name: string;
+}
+
+interface Type {
+  id: number;
+  name: string;
+}
+
+interface PlannedData {
   month: string;
   planned: string;
+  location: number;
+  type: number;
 }
 
 const Planned: React.FC = () => {
-
-  const getCurrentMonth = () => {
+  const getCurrentMonth = (): string => {
     const date = new Date();
     const year = date.getFullYear();
-    const month = String(date.getMonth() + 1).padStart(2, '0'); // Месяцы начинаются с 0
+    const month = String(date.getMonth() + 1).padStart(2, '0');
     return `${year}-${month}`;
   };
 
-  const [formData, setFormData] = useState<FormData>({
-    location: '',
-    type: '',
+  const [formData, setFormData] = useState<PlannedData>({
+    location: 0,
+    type: 0,
     month: getCurrentMonth(),
     planned: ''
   });
 
   const [modalIsOpen, setModalIsOpen] = useState(false);
   const [currentField, setCurrentField] = useState<string>('');
-  const [inputValues, setInputValues] = useState<string[]>([]);
+  const [inputValues, setInputValues] = useState<{ id: number; name: string }[]>([]);
   const [modalTitle, setModalTitle] = useState<string>('');
+  const [locationData, setLocationData] = useState<Location[]>([]);
+  const [typeData, setTypeData] = useState<Type[]>([]);
+
+  useEffect(() => {
+    fetchLocationData();
+    fetchTypeData();
+  }, []);
+
+  const fetchLocationData = async () => {
+    const data: Location[] = await fetchData('/api/location/list', 'POST', null);
+    setLocationData(data);
+  };
+
+  const fetchTypeData = async () => {
+    const data: Type[] = await fetchData('/api/type/list', 'POST', null);
+    setTypeData(data);
+  };
 
   const handleChange = (e: React.ChangeEvent<HTMLSelectElement | HTMLInputElement>) => {
     const { name, value } = e.target;
@@ -38,22 +64,18 @@ const Planned: React.FC = () => {
     }));
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    console.log("Данные формы отправлены: ", formData);
+    await fetchData('/api/planned/add', 'POST', { ...formData });
+    // Обнуляем только поле planned
+    setFormData(prevData => ({ 
+      ...prevData, 
+      planned: '' 
+    }));
+    alert('Плановое значение добавлено');
+};
 
-    // Добавляем запись в массив plannedData
-    plannedData.push({
-      location: Number(formData.location),
-      type: Number(formData.type),
-      month: formData.month,
-      planned: Number(formData.planned)
-    });
-
-    setFormData({ location: '', type: '', month: getCurrentMonth(), planned: '' }); // Обнуляем форму с новым текущим месяцем
-  };
-
-  const openModal = (field: string, label: string, data: string[]) => {
+  const openModal = (field: string, label: string, data: { id: number; name: string }[]) => {
     setCurrentField(field);
     setInputValues(data.slice());
     setModalIsOpen(true);
@@ -66,26 +88,28 @@ const Planned: React.FC = () => {
 
   const handleInputChange = (index: number, value: string) => {
     const updatedValues = [...inputValues];
-    updatedValues[index] = value;
+    updatedValues[index].name = value; // Обновляем только name
     setInputValues(updatedValues);
   };
 
   const addInputField = () => {
-    setInputValues(prev => [...prev, '']);
+    const newId = inputValues.length > 0 ? Math.max(...inputValues.map(item => item.id)) + 1 : 1; // Новый ID
+    setInputValues(prev => [...prev, { id: newId, name: '' }]);
   };
 
-  const saveChanges = () => {
-    const updatedValues = inputValues.filter(item => item.trim() !== '');
-
+  const saveChanges = async () => {
+    const updatedValues = inputValues.filter(item => item.name.trim() !== '');
     if (currentField === 'location') {
-      locationData.length = 0;
-      locationData.push(...updatedValues.map((name, index) => ({ id: index + 1, name })));
+      await fetchData('/api/location/clear', 'DELETE', null);
+      await fetchData('/api/location/add', 'POST', updatedValues);
     } else if (currentField === 'type') {
-      typeData.length = 0;
-      typeData.push(...updatedValues.map((name, index) => ({ id: index + 1, name })));
+      await fetchData('/api/type/clear', 'DELETE', null);
+      await fetchData('/api/type/add', 'POST', updatedValues);
     }
 
     closeModal();
+    await fetchLocationData();
+    await fetchTypeData();
   };
 
   return (
@@ -101,7 +125,12 @@ const Planned: React.FC = () => {
                 <option key={item.id} value={item.id}>{item.name}</option>
               ))}
             </select>
-            <button type="button" onClick={() => openModal('location', 'Территория размещения', locationData.map(item => item.name))}>+</button>
+            <button 
+              type="button" 
+              onClick={() => openModal('location', 'Территория размещения', locationData)}
+            >
+              +
+            </button>
           </div>
         </div>
 
@@ -114,7 +143,12 @@ const Planned: React.FC = () => {
                 <option key={item.id} value={item.id}>{item.name}</option>
               ))}
             </select>
-            <button type="button" onClick={() => openModal('type', 'Вид размещения', typeData.map(item => item.name))}>+</button>
+            <button 
+              type="button" 
+              onClick={() => openModal('type', 'Вид размещения', typeData)}
+            >
+              +
+            </button>
           </div>
         </div>
 
@@ -149,7 +183,7 @@ const Planned: React.FC = () => {
         isOpen={modalIsOpen}
         onRequestClose={closeModal}
         title={modalTitle}
-        inputValues={inputValues}
+        inputValues={inputValues.map(item => item.name)}
         onInputChange={handleInputChange}
         onAddInput={addInputField}
         onSave={saveChanges}

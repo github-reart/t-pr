@@ -20,7 +20,6 @@ const CustomModal: React.FC<CustomModalProps> = ({
   onAddInput,
   onSave,
 }) => {
-    
   return (
     <Modal
       isOpen={isOpen}
@@ -40,7 +39,7 @@ const CustomModal: React.FC<CustomModalProps> = ({
       <button className="add-input-button" onClick={onAddInput}>+ Добавить поле</button>
       <button className="save-button" onClick={onSave}>Сохранить значения</button>
     </Modal>
-);
+  );
 };
 
 export default CustomModal;
