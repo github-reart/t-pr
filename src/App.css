@@ -580,6 +580,9 @@ select {
   padding-left: 15px;
 }
 
+#plannedInput {
+  outline: none;
+}
 
 .custom-tooltip {
   background-color: #EEE;
