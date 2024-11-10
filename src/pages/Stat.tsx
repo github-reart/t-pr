@@ -5,7 +5,26 @@ import jsPDF from 'jspdf';
 import html2canvas from 'html2canvas';
 import ExcelJS from 'exceljs';
 import { faExpandArrowsAlt, faFilePdf, faFileExcel, faAngleLeft, faAngleRight } from '@fortawesome/free-solid-svg-icons';
-import { newsData, locationData, typeData } from '../data';
+import { fetchData } from '../api';
+import { useUserContext } from '../components/UserContext';
+
+interface NewsItem {
+  id: number;
+  title: string;
+  publicationdate: string;
+  location: number;
+  type: number;
+}
+
+interface LocationData {
+  id: number;
+  name: string;
+}
+
+interface TypeData {
+  id: number;
+  name: string;
+}
 
 const getCurrentMonth = (): string => {
   const date = new Date();
@@ -17,6 +36,11 @@ const formatDateString = (date: Date): string => {
 }
 
 const Stat: React.FC = () => {
+
+  const [newsData, setNewsData] = useState<NewsItem[]>([]);
+  const [locationData, setLocationData] = useState<LocationData[]>([]);
+  const [typeData, setTypeData] = useState<TypeData[]>([]);
+
   const location = useLocation();
   const params = new URLSearchParams(location.search);
   
@@ -28,21 +52,22 @@ const Stat: React.FC = () => {
 
   const [currentMonth, setCurrentMonth] = useState<string>(getCurrentMonth());
 
+  const { user, pass } = useUserContext();
+
+  const loadData = async (url: string, method: string, data: any = null): Promise<any> => {
+    const payload = { ...data, adminName: user, adminPass: pass };
+    return await fetchData(url, method, payload);
+  };
+
   const getDaysInMonth = (dateString: string): number => {
     const date = new Date(`${dateString}-01`);
     return new Date(date.getFullYear(), date.getMonth() + 1, 0).getDate();
   };
 
-  const getPreviousMonth = (current: string): string => {
-    const date = new Date(`${current}-01`);
-    date.setMonth(date.getMonth() - 1);
-    return formatDateString(date);
-  };
-
-  const getNextMonth = (current: string): string => {
-    const date = new Date(`${current}-01`);
-    date.setMonth(date.getMonth() + 1);
-    return formatDateString(date);
+  const changeMonth = (offset: number): void => {
+    const date = new Date(`${currentMonth}-01`);
+    date.setMonth(date.getMonth() + offset);
+    setCurrentMonth(formatDateString(date));
   };
 
   const daysInMonth = getDaysInMonth(currentMonth);
@@ -51,6 +76,33 @@ const Stat: React.FC = () => {
 
   const previousMonth = new Date(currentDate.getFullYear(), currentDate.getMonth() - 1, 1).toLocaleString('ru', { month: 'long' });
   const nextMonth = new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 1).toLocaleString('ru', { month: 'long' });
+
+  const fromDate: string = `${currentMonth}-01`;
+  const toDate: string = `${currentMonth}-${getDaysInMonth(currentMonth)}`;  
+
+  useEffect(() => {
+    const loadAllData = async () => {
+      try {
+        const [locationData, typeData] = await Promise.all([
+          loadData('/api/location/list', 'POST'),
+          loadData('/api/type/list', 'POST'),
+        ]);
+        setLocationData(locationData);
+        setTypeData(typeData);
+      } catch (error) {
+        console.error("Error loading data: ", error);
+      }
+    };
+    loadAllData();
+  }, []);
+
+  useEffect(() => {  
+    const loadNewsData = async () => {
+      const data: NewsItem[] = await loadData('/api/news', 'POST', { from: fromDate, to: toDate });
+      setNewsData(data);
+    };
+    loadNewsData();
+  }, [currentMonth]);
 
   const [isFullscreen, setIsFullscreen] = useState<boolean>(false);
 
@@ -71,7 +123,8 @@ const Stat: React.FC = () => {
     return () => {
         document.removeEventListener('fullscreenchange', onFullscreenChange);
     };
-}, []);
+  }, []);
+      
 
 const downloadPDF = async () => {
   const doc = new jsPDF('p', 'px', 'a4'); 
@@ -136,7 +189,6 @@ const downloadXLS = async () => {
 
     data.push(header);
 
-
     locationData.forEach(locationItem => {
       const shouldDisplay =
         (isSbyt && locationItem.name.includes("Сбыт")) || 
@@ -148,7 +200,7 @@ const downloadXLS = async () => {
       let totalNewsCount = 0;
 
       newsData.forEach(newsItem => {
-        const newsDate = new Date(newsItem.publicationDate);
+        const newsDate = new Date(newsItem.publicationdate);
         const newsDay = newsDate.getDate();
         const newsLocation = newsItem.location;
         const newsType = newsItem.type;
@@ -239,11 +291,11 @@ const downloadXLS = async () => {
       <div className="header-container">
         <h1>{headerTitle} {currentMonthName} {currentDate.getFullYear()}</h1>
         <div className="top-buttons nosave">
-          <button className="arrow" onClick={() => setCurrentMonth(getPreviousMonth(currentMonth))}>
+          <button className="arrow" onClick={() => changeMonth(-1)}>
             <FontAwesomeIcon icon={faAngleLeft} /> {previousMonth}
           </button>
           <div className="currentPeriod"><span>{currentMonthName}</span></div>
-          <button className="arrow" onClick={() => setCurrentMonth(getNextMonth(currentMonth))}>
+          <button className="arrow" onClick={() => changeMonth(1)}>
             {nextMonth} <FontAwesomeIcon icon={faAngleRight} />
           </button>
           <button onClick={downloadPDF}>
@@ -257,7 +309,7 @@ const downloadXLS = async () => {
           </button>          
         </div>
       </div>
-      
+
       {typeData.map(typeItem => (
         <div key={typeItem.id}>
           <h3>{typeItem.name}</h3>
@@ -283,7 +335,7 @@ const downloadXLS = async () => {
                 let totalNewsCount = 0;
 
                 newsData.forEach(newsItem => {
-                  const newsDate = new Date(newsItem.publicationDate);
+                  const newsDate = new Date(newsItem.publicationdate);
                   const newsDay = newsDate.getDate();
                   const newsLocation = newsItem.location;
                   const newsType = newsItem.type;
@@ -316,6 +368,7 @@ const downloadXLS = async () => {
           </table>
         </div>
       ))}
+
     </div>
     </>
   );

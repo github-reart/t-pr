@@ -1,24 +1,27 @@
 import express from 'express';
 import cors from 'cors';
-import { Pool } from 'pg';
+import { pool } from './database';
 
 const app = express();
 const PORT = process.env.PORT || 5001;
 
-const pool = new Pool({
-    user: 't-pr',
-    host: 'localhost',
-    database: 't-pr',
-    password: 't-pr',
-    port: 5432,
-});
-
-interface Location {
-    name: string;
+interface News {
+    id?: number;
+    location: number;
+    publicationdate: string;
+    title: string;
+    source: number;
+    link: string;
+    type: number;
+    theme: number;
+    emotional: number;
 }
 
-interface Type {
-    name: string;
+interface Planned {
+    month: string;
+    planned: number;
+    location: number;
+    type: number;
 }
 
 app.use(cors());
@@ -34,6 +37,15 @@ const handleError = (res: express.Response, error: any) => {
     res.status(500).json({ error: 'Server error' });
 };
 
+const requireUser = async (req: express.Request, res: express.Response, next: express.NextFunction) => {
+    const { adminName, adminPass } = req.body;
+    const userId = await getUserId(adminName, adminPass);
+    if (!userId) {
+        return res.status(403).json({ error: 'Access denied.' });
+    }
+    next();
+};
+
 const requireAdmin = async (req: express.Request, res: express.Response, next: express.NextFunction) => {
     const { adminName, adminPass } = req.body;
     const userId = await getUserId(adminName, adminPass);
@@ -43,13 +55,18 @@ const requireAdmin = async (req: express.Request, res: express.Response, next: e
     next();
 };
 
-// Применить requireAdmin ко всем маршрутам, кроме '/api/auth'
-// app.use(async (req, res, next) => {
-//     if (req.path === '/api/auth') {
-//         return next();
-//     }
-//     await requireAdmin(req, res, next);
-// });
+// Проверка доступов 
+app.use(async (req, res, next) => {
+    if (req.path === '/api/auth') {
+        return next();
+    }
+    if (req.path.startsWith('/api/users/')) {
+        await requireAdmin(req, res, next);
+    } else {
+        await requireUser(req, res, next);
+    }
+});
+
 
 app.post('/api/auth', async (req, res) => {
     const { name, pass } = req.body;
@@ -66,6 +83,133 @@ app.post('/api/auth', async (req, res) => {
         handleError(res, err);
     }
 });
+
+app.post('/api/planned', async (req, res) => {
+    const { from, to } = req.body;
+    try {
+        const result = await pool.query(
+            `SELECT * FROM planned WHERE TO_DATE(month, 'YYYY-MM') BETWEEN $1 AND $2`,
+            [from, to]
+        );
+        res.json(result.rows);
+    } catch (err) {
+        handleError(res, err);
+    }
+});
+
+app.post('/api/planned/add', async (req, res) => {
+    const { month, planned, location, type }: Planned = req.body;
+    try {
+        const existingRecord = await pool.query(
+            'SELECT * FROM planned WHERE month = $1 AND location = $2 AND type = $3',
+            [month, location, type]
+        );
+        if (existingRecord.rows.length > 0) {
+            const updatedResult = await pool.query(
+                'UPDATE planned SET planned = $1 WHERE month = $2 AND location = $3 AND type = $4 RETURNING *',
+                [planned, month, location, type]
+            );
+            return res.status(200).json(updatedResult.rows[0]);
+        } else {
+            const insertResult = await pool.query(
+                'INSERT INTO planned(month, planned, location, type) VALUES($1, $2, $3, $4) RETURNING *',
+                [month, planned, location, type]
+            );
+            return res.status(201).json(insertResult.rows[0]);
+        }
+    } catch (err) {
+        handleError(res, err);
+    }
+});
+
+app.delete('/api/planned/del', async (req, res) => {
+    const { location, type, month } = req.body;
+
+    try {
+        await pool.query('DELETE FROM planned WHERE location = $1 AND type = $2 AND month = $3', [location, type, month]);
+        res.status(204).send();
+    } catch (err) {
+        handleError(res, err);
+    }
+});
+
+app.post('/api/news', async (req, res) => {
+    const { from, to } = req.body;
+    let query = 'SELECT * FROM news WHERE 1=1';
+    const params = [];
+
+    if (from && to) {
+        query += ' AND publicationdate BETWEEN $1 AND $2';
+        params.push(from, to);
+    } else if (from) {
+        query += ' AND publicationdate >= $1';
+        params.push(from);
+    } else if (to) { 
+        query += ' AND publicationdate <= $1';
+        params.push(to);
+    }
+
+    query += ' ORDER BY publicationdate DESC';
+
+    try {
+        const result = await pool.query(query, params);
+        res.json(result.rows);
+    } catch (err) {
+        handleError(res, err);
+    }
+});
+
+app.post('/api/news/add', async (req, res) => {
+    const news: News = req.body;
+    try {
+        const result = await pool.query(
+            'INSERT INTO news(location, publicationdate, title, source, link, type, theme, emotional) VALUES($1, $2, $3, $4, $5, $6, $7, $8) RETURNING *',
+            [news.location, news.publicationdate, news.title, news.source, news.link, news.type, news.theme, news.emotional]
+        );
+        return res.status(201).json(result.rows[0]);
+    } catch (err) {
+        handleError(res, err);
+    }
+});
+
+app.put('/api/news/update/:id', async (req, res) => {
+    const { id } = req.params;
+    const news: News = req.body;
+    try {
+        const result = await pool.query(
+            'UPDATE news SET location = $1, publicationdate = $2, title = $3, source = $4, link = $5, type = $6, theme = $7, emotional = $8 WHERE id = $9 RETURNING *',
+            [news.location, news.publicationdate, news.title, news.source, news.link, news.type, news.theme, news.emotional, id]
+        );
+        return res.status(200).json(result.rows[0]);
+    } catch (err) {
+        handleError(res, err);
+    }
+});
+
+app.post('/api/news/:id', async (req, res) => {
+    const { id } = req.params;
+    try {
+        const result = await pool.query('SELECT * FROM news WHERE id = $1', [id]);
+        if (result.rows.length === 0) {
+            return res.status(404).json({ error: 'News not found' });
+        }
+        res.json(result.rows[0]);
+    } catch (err) {
+        handleError(res, err);
+    }
+});
+
+app.delete('/api/news/del', async (req, res) => {
+    const { id } = req.body;
+
+    try {
+        await pool.query('DELETE FROM news WHERE id = $1', [id]);
+        res.status(204).send();
+    } catch (err) {
+        handleError(res, err);
+    }
+});
+
 
 app.post('/api/users/list', async (req, res) => {
     try {
@@ -119,23 +263,16 @@ app.post('/api/location/list', async (req, res) => {
     }
 });
 
-app.post('/api/location/add', async (req, res) => {
-    const locations: { id?: number; name: string }[] = req.body;
+app.post('/api/location/edit', async (req, res) => {
+    const { values } = req.body;
+    const locations: { id?: number; name: string }[] = values;
     try {
+        await pool.query('DELETE FROM location');
+        await pool.query('ALTER SEQUENCE location_id_seq RESTART WITH 1'); // Сброс автоинкрементации
         for (const location of locations) {
             await pool.query('INSERT INTO location(id, name) VALUES($1, $2) ON CONFLICT (id) DO UPDATE SET name = EXCLUDED.name', [location.id, location.name]);
         }
         res.status(201).json({ success: true });
-    } catch (err) {
-        handleError(res, err);
-    }
-});
-
-app.delete('/api/location/clear', async (req, res) => {
-    try {
-        await pool.query('DELETE FROM location');
-        await pool.query('ALTER SEQUENCE location_id_seq RESTART WITH 1'); // Сброс автоинкрементации
-        res.status(204).send();
     } catch (err) {
         handleError(res, err);
     }
@@ -150,9 +287,12 @@ app.post('/api/type/list', async (req, res) => {
     }
 });
 
-app.post('/api/type/add', async (req, res) => {
-    const types: { id?: number; name: string }[] = req.body;
+app.post('/api/type/edit', async (req, res) => {
+    const { values } = req.body;
+    const types: { id?: number; name: string }[] = values;
     try {
+        await pool.query('DELETE FROM type');
+        await pool.query('ALTER SEQUENCE type_id_seq RESTART WITH 1');
         for (const type of types) {
             await pool.query('INSERT INTO type(id, name) VALUES($1, $2) ON CONFLICT (id) DO UPDATE SET name = EXCLUDED.name', [type.id, type.name]);
         }
@@ -162,36 +302,74 @@ app.post('/api/type/add', async (req, res) => {
     }
 });
 
-app.delete('/api/type/clear', async (req, res) => {
+
+app.post('/api/source/list', async (req, res) => {
     try {
-        await pool.query('DELETE FROM type');
-        await pool.query('ALTER SEQUENCE type_id_seq RESTART WITH 1'); // Сброс автоинкрементации
-        res.status(204).send();
+        const result = await pool.query('SELECT * FROM source ORDER BY id ASC');
+        res.json(result.rows);
     } catch (err) {
         handleError(res, err);
     }
 });
 
-app.post('/api/planned/add', async (req, res) => {
-    const { month, planned, location, type } = req.body;
+app.post('/api/source/edit', async (req, res) => {
+    const { values } = req.body;    
+    const sources: { id?: number; name: string }[] = values;
     try {
-        const existingRecord = await pool.query(
-            'SELECT * FROM planned WHERE month = $1 AND location = $2 AND type = $3',
-            [month, location, type]
-        );
-        if (existingRecord.rows.length > 0) {
-            const updatedResult = await pool.query(
-                'UPDATE planned SET planned = $1 WHERE month = $2 AND location = $3 AND type = $4 RETURNING *',
-                [planned, month, location, type]
-            );
-            return res.status(200).json(updatedResult.rows[0]);
-        } else {
-            const insertResult = await pool.query(
-                'INSERT INTO planned(month, planned, location, type) VALUES($1, $2, $3, $4) RETURNING *',
-                [month, planned, location, type]
-            );
-            return res.status(201).json(insertResult.rows[0]);
+        await pool.query('DELETE FROM source');
+        await pool.query('ALTER SEQUENCE source_id_seq RESTART WITH 1');
+        for (const source of sources) {
+            await pool.query('INSERT INTO source(id, name) VALUES($1, $2) ON CONFLICT (id) DO UPDATE SET name = EXCLUDED.name', [source.id, source.name]);
         }
+        res.status(201).json({ success: true });
+    } catch (err) {
+        handleError(res, err);
+    }
+});
+
+app.post('/api/theme/list', async (req, res) => {
+    try {
+        const result = await pool.query('SELECT * FROM theme');
+        res.json(result.rows);
+    } catch (err) {
+        handleError(res, err);
+    }
+});
+
+app.post('/api/theme/edit', async (req, res) => {
+    const { values } = req.body;  
+    const themes: { id?: number; name: string }[] = values;
+    try {
+        await pool.query('DELETE FROM theme');
+        await pool.query('ALTER SEQUENCE theme_id_seq RESTART WITH 1');
+        for (const theme of themes) {
+            await pool.query('INSERT INTO theme(id, name) VALUES($1, $2) ON CONFLICT (id) DO UPDATE SET name = EXCLUDED.name', [theme.id, theme.name]);
+        }
+        res.status(201).json({ success: true });
+    } catch (err) {
+        handleError(res, err);
+    }
+});
+
+app.post('/api/emotional/list', async (req, res) => {
+    try {
+        const result = await pool.query('SELECT * FROM emotional');
+        res.json(result.rows);
+    } catch (err) {
+        handleError(res, err);
+    }
+});
+
+app.post('/api/emotional/edit', async (req, res) => {
+    const { values } = req.body;  
+    const emotionals: { id?: number; name: string }[] = values;
+    try {
+        await pool.query('DELETE FROM emotional');
+        await pool.query('ALTER SEQUENCE emotional_id_seq RESTART WITH 1');
+        for (const emotional of emotionals) {
+            await pool.query('INSERT INTO emotional(id, name) VALUES($1, $2) ON CONFLICT (id) DO UPDATE SET name = EXCLUDED.name', [emotional.id, emotional.name]);
+        }
+        res.status(201).json({ success: true });
     } catch (err) {
         handleError(res, err);
     }

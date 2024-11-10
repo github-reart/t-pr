@@ -251,9 +251,9 @@ textarea {
   text-align: center;
 }
 
-.form {
-  width: 100%;
+.news-form {
   max-width: 500px;
+  width: 100%;
   text-align: left;
 }
 
@@ -269,7 +269,7 @@ textarea {
   width: 100%;
 }
 
-.select-button-group select {
+select {
   flex: 1;
   border: none;
   background-color: #EBEDF0;
@@ -302,6 +302,42 @@ textarea {
 }
 
 
+.edit-news .container {
+  display: flex;
+  width: 100%;
+  margin: 0 auto;
+}
+
+.edit-news .column {
+  flex: 1;
+  text-align: center;
+}
+
+.edit-news input[type="date" ] {
+  padding: 3px;
+  text-align: center;
+  height: 30px;
+}
+
+.edit-news select {
+  width: 100%;
+  height: 30px;
+  margin-bottom: 10px;
+}
+
+.edit-news .column:last-child {
+  padding-left: 10px;
+}
+
+.edit-news textarea {
+  width: 100%;
+  margin-bottom: 7px;
+}
+
+.edit-news button[type="submit"] {
+  width: 100%;
+}
+
 .modal {
   background-color: #fff;
   padding: 20px;
@@ -309,6 +345,7 @@ textarea {
   width: 400px;
   position: relative;
   margin: auto;
+  outline: none;
 }
 
 .modal-overlay {
@@ -446,6 +483,103 @@ textarea {
   text-align: center;
 }
 
+.planned-page {
+  padding-bottom: 200px;
+}
+
+.planned-table tbody td {
+  min-width: 50px;
+}
+
+.planned-table tbody td:nth-child(n+2):nth-child(-n+4),
+.planned-table tbody td:nth-child(n+8):nth-child(-n+10)
+{
+  background-color: #EEE;
+}
+
+.planned-table tbody tr td:last-child {
+  background-color: #EEE;
+  font-weight: bold;
+}
+
+.planned-table td button {
+  padding: 3px;
+  width: 100%;
+  height: 100%;
+  background: transparent;
+  color: #000;
+}
+
+.planned-table td button:hover {
+  font-weight: bold;
+  cursor: pointer;
+}
+
+
+.planned-form {
+  position: absolute;
+  bottom: 0;
+  background-color: #FFF;
+  border-top: 1px solid #EEE;
+  width: calc(100% - 83px);
+  margin-left: -26px;
+  padding-bottom: 10px;
+}
+
+.planned-form .container {
+  display: flex;
+  width: 100%;
+  margin: 0 auto;
+}
+
+.planned-form .column {
+  flex: 1;
+  padding: 10px;
+  text-align: center;
+}
+
+.planned-form .column:first-child label {
+  text-align: left;
+}
+
+.planned-form .select-button-group {
+  margin-bottom: 20px;
+}
+
+.planned-form select {
+  height: 38px;
+}
+
+.planned-form input {
+  text-align: center;
+}
+
+.planned-form input.active {
+  border: 2px solid #F15922;
+}
+
+.planned-form input[type="number"]{
+  font-size: 25px;
+  width: 140px;
+}
+
+.planned-form .column:last-child {
+  text-align: left;
+}
+
+
+.planned-form button[type="submit"]{
+  margin-top: 34px;
+  width: 150px;
+
+}
+
+.planned-form button.reset-button {
+  margin-left: 20px;  
+  padding: 10px;
+  padding-left: 15px;
+}
+
 
 .custom-tooltip {
   background-color: #EEE;
@@ -524,7 +658,7 @@ button,
 
 
 
-.top-buttons .calendar-button {
+.calendar-button {
   border: 1px solid #475466;
   background-color: #475466;
   font-size: 16px;
@@ -532,7 +666,7 @@ button,
   color: #FFF;
 }
 
-.top-buttons .reset-button {
+.reset-button {
   font-size: 16px;
   border: 1px solid #475466;
   background-color: #FFF;
@@ -541,15 +675,15 @@ button,
   padding: 7px 10px;
 }
 
-.top-buttons .calendar-button:hover,
-.top-buttons .reset-button:hover {
+.calendar-button:hover,
+.reset-button:hover {
   border-color: #EBEDF0;
   background-color: #EBEDF0;
   color: #F15922;
 }
 
-.top-buttons .calendar-button svg,
-.top-buttons .reset-button svg {
+.calendar-button svg,
+.reset-button svg {
   margin-right: 5px;
 }
 
@@ -574,15 +708,45 @@ button,
   margin-top: 5px;
 }
 
+input[type="checkbox"] {
+  width: auto;
+  margin-right: 10px;
+}
+
 .user-form button {
   padding: 10px 20px;
   cursor: pointer;
 }
 
+.admin-block tbody td {
+  vertical-align: top;
+  padding: 3px;
+  padding-top: 12px;
+}
 
-.userAddBlock input {
+.admin-block td input:not([type="checkbox"]) {
+  margin-top: -12px;
+  width: 100%;
+}
+
+.admin-block td button {
+  margin-top: -12px;  
+}
+
+.admin-block td label {
+  display: inline-block;
+  width: 100%;
+  font-size: 12px;
+}
+
+.user-add input {
   margin-left: 5px;
   margin-right: 5px;
+}
+
+.user-add label {
+  font-size: 12px;
+  margin-right: 15px;
 }
 
 .user-change {
@@ -597,3 +761,4 @@ button,
   color: #FFF;
   margin-left: 10px;
 }
+

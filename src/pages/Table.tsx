@@ -1,15 +1,21 @@
 import React, { useState, useEffect } from 'react';
-// import { Link } from 'react-router-dom';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faExpandArrowsAlt, faFileExcel, faAngleLeft, faAngleRight } from '@fortawesome/free-solid-svg-icons';
-import { newsData, locationData, typeData, plannedData } from '../data';
 import ExcelJS from 'exceljs';
+import { fetchData } from '../api';
+import { useUserContext } from '../components/UserContext';
 
 const Table: React.FC = () => {
     const months: string[] = Array.from({ length: 12 }, (_, i) => new Date(0, i).toLocaleString('ru', { month: 'short' }));
     const currentYear = new Date().getFullYear();
     const [selectedYear, setSelectedYear] = useState<number>(currentYear);
+    const [locationData, setLocationData] = useState<any[]>([]);
+    const [typeData, setTypeData] = useState<any[]>([]);
+    const [newsData, setNewsData] = useState<any[]>([]);
+    const [plannedData, setPlannedData] = useState<any[]>([]);
     const [isFullscreen, setIsFullscreen] = useState<boolean>(false);
+
+    const { user, pass } = useUserContext();
 
     const toggleFullscreen = () => {
         if (!isFullscreen) {
@@ -30,6 +36,51 @@ const Table: React.FC = () => {
         };
     }, []);
 
+    const loadData = async (url: string, method: string, data: any = null): Promise<any> => {
+        const payload = { ...data, adminName: user, adminPass: pass };
+        return await fetchData(url, method, payload);
+    };
+
+    const loadInitialData = async () => {
+        try {
+            const [locations, types] = await Promise.all([
+                loadData('/api/location/list', 'POST'),
+                loadData('/api/type/list', 'POST'),
+            ]);
+            setLocationData(locations);
+            setTypeData(types);
+        } catch (error) {
+            console.error("Error loading initial data: ", error);
+        }
+    };
+
+    const getFromDate = (year: number) => `${year}-01-01`;
+    const getToDate = (year: number) => `${year}-12-31`;
+
+    useEffect(() => {
+        loadInitialData();
+    }, []);
+
+    useEffect(() => {
+        const loadNewsAndPlannedData = async () => {
+            const fromDate = getFromDate(selectedYear);
+            const toDate = getToDate(selectedYear);
+
+            try {
+                const [newsDataResponse, plannedDataResponse] = await Promise.all([
+                    loadData('/api/news', 'POST', { from: fromDate, to: toDate }),
+                    loadData('/api/planned', 'POST', { from: fromDate, to: toDate }),
+                ]);
+                setNewsData(newsDataResponse);
+                setPlannedData(plannedDataResponse);
+            } catch (error) {
+                console.error("Error loading news or planned data: ", error);
+            }
+        };
+
+        loadNewsAndPlannedData();
+    }, [selectedYear]);
+
     const getPlannedData = (typeId: number, month: string, locationId: number): number => {
         const plannedEntry = plannedData.find(
             (entry) => entry.type === typeId && entry.month === month && entry.location === locationId
@@ -39,7 +90,7 @@ const Table: React.FC = () => {
 
     const filterNewsByTypeAndMonthAndLocation = (typeId: number, month: string, locationId: number): number => {
         return newsData.filter(
-            (entry) => entry.type === typeId && entry.publicationDate.startsWith(month) && entry.location === locationId
+            (entry) => entry.type === typeId && entry.publicationdate.startsWith(month) && entry.location === locationId
         ).length;
     };
 
@@ -101,72 +152,72 @@ const Table: React.FC = () => {
     const tableData = generateTableData();
 
     const handleDownload = async () => {
-      const workbook = new ExcelJS.Workbook();
-      const worksheet = workbook.addWorksheet('Данные');
-  
-      // Установка заголовка с жирным текстом
-      worksheet.getCell('A1').value = `Таблица информационной активности ${selectedYear}`;
-      worksheet.getCell('A1').font = { bold: true, size: 14 };
-  
-      // Пустая вторая строка
-      worksheet.addRow([]);
-  
-      // Заголовок таблицы
-      const headerRow = ['Наименование', ...months.flatMap(month => [`${month}\nплан`, `${month}\nфакт`, `откло\nнение`]), 'ИТОГ'];
-      const headerRowValues = worksheet.addRow(headerRow);
-  
-      // Применение стилей в заголовке
-      headerRowValues.eachCell((cell, colNumber) => {
-          cell.fill = {
-              type: 'pattern',
-              pattern: 'solid',
-              fgColor: { argb: 'FF808A96' },
-          };
-          cell.font = {
-              color: { argb: 'FFFFFFFF' },
-              bold: true,
-          };
-          cell.alignment = { 
-            horizontal: colNumber === 1 ? 'left' : 'center', 
-            vertical: 'middle' 
-          }; 
-      });
-  
-      // Добавление данных
-      tableData.forEach(data => {
-          const row = worksheet.addRow(data);
-          const firstCellValue = data[0];
-  
-          // Проверяем, если первая ячейка в строке соответствует name из typeData
-          const isBold = typeData.some(type => type.name === firstCellValue);
-  
-          row.eachCell((cell) => {
-              cell.alignment = { horizontal: data[0] === cell.value ? 'left' : 'center' }; // Выровнять
-              if (isBold) {
-                  cell.font = { bold: true }; // Установить жирный шрифт для всей строки
-              }
-          });
-      });
-  
-      worksheet.getColumn(1).width = 25; // Установка ширины для 1 столбца
-  
-      const buffer = await workbook.xlsx.writeBuffer(); // Генерация буфера
-  
-      // Создание Blob и ссылки для скачивания
-      const blob = new Blob([buffer], { type: 'application/octet-stream' });
-      const url = window.URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = `pr-table-${selectedYear}.xlsx`;
-  
-      // Добавление ссылки на страницу и программный клик для скачивания
-      document.body.appendChild(a);
-      a.click();
-  
-      // Удаление ссылки и освобождение URL
-      document.body.removeChild(a);
-      window.URL.revokeObjectURL(url);
-  };
+        const workbook = new ExcelJS.Workbook();
+        const worksheet = workbook.addWorksheet('Данные');
+
+        // Установка заголовка с жирным текстом
+        worksheet.getCell('A1').value = `Таблица информационной активности ${selectedYear}`;
+        worksheet.getCell('A1').font = { bold: true, size: 14 };
+
+        // Пустая вторая строка
+        worksheet.addRow([]);
+
+        // Заголовок таблицы
+        const headerRow = ['Наименование', ...months.flatMap(month => [`${month}\nплан`, `${month}\nфакт`, `откло\nрение`]), 'ИТОГ'];
+        const headerRowValues = worksheet.addRow(headerRow);
+
+        // Применение стилей в заголовке
+        headerRowValues.eachCell((cell, colNumber) => {
+            cell.fill = {
+                type: 'pattern',
+                pattern: 'solid',
+                fgColor: { argb: 'FF808A96' },
+            };
+            cell.font = {
+                color: { argb: 'FFFFFFFF' },
+                bold: true,
+            };
+            cell.alignment = { 
+                horizontal: colNumber === 1 ? 'left' : 'center', 
+                vertical: 'middle' 
+            }; 
+        });
+
+        // Добавление данных
+        tableData.forEach(data => {
+            const row = worksheet.addRow(data);
+            const firstCellValue = data[0];
+
+            // Проверяем, если первая ячейка в строке соответствует name из typeData
+            const isBold = typeData.some(type => type.name === firstCellValue);
+
+            row.eachCell((cell) => {
+                cell.alignment = { horizontal: data[0] === cell.value ? 'left' : 'center' }; // Выровнять
+                if (isBold) {
+                    cell.font = { bold: true }; // Установить жирный шрифт для всей строки
+                }
+            });
+        });
+
+        worksheet.getColumn(1).width = 25; // Установка ширины для 1 столбца
+
+        const buffer = await workbook.xlsx.writeBuffer(); // Генерация буфера
+
+        // Создание Blob и ссылки для скачивания
+        const blob = new Blob([buffer], { type: 'application/octet-stream' });
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `pr-table-${selectedYear}.xlsx`;
+
+        // Добавление ссылки на страницу и программный клик для скачивания
+        document.body.appendChild(a);
+        a.click();
+
+        // Удаление ссылки и освобождение URL
+        document.body.removeChild(a);
+        window.URL.revokeObjectURL(url);
+    };
 
     return (
         <>
@@ -243,3 +294,4 @@ const Table: React.FC = () => {
 };
 
 export default Table;
+

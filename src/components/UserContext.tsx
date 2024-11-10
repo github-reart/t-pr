@@ -1,18 +1,17 @@
-// UserContext.tsx
 import React, { createContext, useContext, useState } from 'react';
 
 interface UserContextType {
   user: string | null;
-  userId: number | null; // Обновлен тип на number | null
+  userId: number | null;
   pass: string | null;
-  setUserData: (user: string | null, userId: number | null, pass: string | null) => void; // Обновлен тип userId
+  setUserData: (user: string | null, userId: number | null, pass: string | null) => void;
 }
 
 const UserContext = createContext<UserContextType | undefined>(undefined);
 
 export const UserProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [user, setUser] = useState<string | null>(null);
-  const [userId, setUserId] = useState<number | null>(null); // Обновлен тип на number | null
+  const [userId, setUserId] = useState<number | null>(null);
   const [pass, setPass] = useState<string | null>(null);
 
   const setUserData = (user: string | null, userId: number | null, pass: string | null) => {

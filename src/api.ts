@@ -1,7 +1,7 @@
 const BASE_URL = 'http://localhost:5001';
 
 export const fetchData = async (url: string, method: string, body: any) => {
-  try {
+    try {
     const response = await fetch(`${BASE_URL}${url}`, {
       method,
       headers: {

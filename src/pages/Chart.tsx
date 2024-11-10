@@ -15,7 +15,8 @@ import jsPDF from 'jspdf';
 import html2canvas from 'html2canvas';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faExpandArrowsAlt, faFilePdf, faAngleLeft, faAngleRight } from '@fortawesome/free-solid-svg-icons';
-import { newsData, plannedData, typeData, locationData } from '../data';
+import { fetchData } from '../api';
+import { useUserContext } from '../components/UserContext';
 
 interface DataPoint {
   id: string;
@@ -25,7 +26,6 @@ interface DataPoint {
   actual: number;
 }
 
-// Определяем текущий месяц в формате "YYYY-MM"
 const getCurrentMonth = (): string => {
   const date = new Date();
   return date.toISOString().slice(0, 7); // Получаем формат "YYYY-MM"
@@ -35,7 +35,7 @@ const getCurrentMonth = (): string => {
 const formatDateString = (date: Date): string => date.toISOString().slice(0, 7);
 
 // Генерация данных для графика по заданному месяцу
-const generateData = (month: string): DataPoint[] => {
+const generateData = (month: string, newsData: any[], plannedData: any[], typeData: any[], locationData: any[]): DataPoint[] => {
   const result: DataPoint[] = [];
 
   typeData.forEach((type) => {
@@ -44,7 +44,7 @@ const generateData = (month: string): DataPoint[] => {
       .reduce((acc, item) => acc + item.planned, 0);
     
     const actualForType = newsData
-      .filter((news) => news.type === type.id && news.publicationDate.startsWith(month)).length;
+      .filter((news) => news.type === type.id && news.publicationdate.startsWith(month)).length;
 
     if (actualForType > 0 || plannedForType > 0) {
       result.push({ 
@@ -58,7 +58,7 @@ const generateData = (month: string): DataPoint[] => {
 
     locationData.forEach((location) => {
       const actualForLocationType = newsData
-        .filter(news => news.type === type.id && news.location === location.id && news.publicationDate.startsWith(month)).length;
+        .filter(news => news.type === type.id && news.location === location.id && news.publicationdate.startsWith(month)).length;
 
       const plannedForLocationType = plannedData
         .find(item => item.type === type.id && item.location === location.id && item.month === month)?.planned || 0;
@@ -93,8 +93,57 @@ const CustomTooltip: React.FC<TooltipProps<number, string>> = ({ active, payload
 
 const Chart: React.FC = () => {
   const [currentMonth, setCurrentMonth] = useState(getCurrentMonth());
-  const data: DataPoint[] = generateData(currentMonth);
+  const [locationData, setLocationData] = useState<any[]>([]);
+  const [typeData, setTypeData] = useState<any[]>([]);
+  const [newsData, setNewsData] = useState<any[]>([]);
+  const [plannedData, setPlannedData] = useState<any[]>([]);
   const [isFullscreen, setIsFullscreen] = useState(false);
+
+  const { user, pass } = useUserContext();
+
+  const loadData = async (url: string, method: string, data: any = null): Promise<any> => {
+    const payload = { ...data, adminName: user, adminPass: pass };
+    return await fetchData(url, method, payload);
+  };
+
+  const fromDate = `${currentMonth}-01`;
+  const toDate = new Date(new Date(fromDate).getFullYear(), new Date(fromDate).getMonth() + 1, 0).toISOString().split('T')[0]; // Последний день месяца
+
+  useEffect(() => {
+    const loadInitialData = async () => {
+      try {
+        const [locationData, typeData] = await Promise.all([
+          loadData('/api/location/list', 'POST'),
+          loadData('/api/type/list', 'POST'),
+        ]);
+        setLocationData(locationData);
+        setTypeData(typeData);
+      } catch (error) {
+        console.error("Error loading data: ", error);
+      }
+    };
+
+    loadInitialData();
+  }, [user, pass]);
+
+  useEffect(() => {
+    const loadNewsAndPlannedData = async () => {
+      try {
+        const [newsData, plannedData] = await Promise.all([
+          loadData('/api/news', 'POST', { from: fromDate, to: toDate }),
+          loadData('/api/planned', 'POST', { from: fromDate, to: toDate }),
+        ]);
+        setNewsData(newsData);
+        setPlannedData(plannedData);
+      } catch (error) {
+        console.error("Error loading data: ", error);
+      }
+    };
+
+    loadNewsAndPlannedData();
+  }, [currentMonth, user, pass]);
+
+  const data: DataPoint[] = generateData(currentMonth, newsData, plannedData, typeData, locationData);
 
   const toggleFullscreen = () => {
       if (!isFullscreen) {
@@ -115,17 +164,10 @@ const Chart: React.FC = () => {
       };
   }, []);
   
-  
-  const getPreviousMonth = (current: string): string => {
-    const date = new Date(`${current}-01`);
-    date.setMonth(date.getMonth() - 1);
-    return formatDateString(date);
-  };
-
-  const getNextMonth = (current: string): string => {
-    const date = new Date(`${current}-01`);
-    date.setMonth(date.getMonth() + 1);
-    return formatDateString(date);
+  const changeMonth = (offset: number): void => {
+    const date = new Date(`${currentMonth}-01`);
+    date.setMonth(date.getMonth() + offset);
+    setCurrentMonth(formatDateString(date));
   };
 
   const currentMonthIndex = new Date(currentMonth).getMonth();
@@ -197,11 +239,11 @@ const Chart: React.FC = () => {
       <div className="header-container">
         <h1>График информационной активности {currentMonthName} {new Date(currentMonth).getFullYear()}</h1>
         <div className="top-buttons nosave">
-          <button className="arrow" onClick={() => setCurrentMonth(getPreviousMonth(currentMonth))}>
+          <button className="arrow" onClick={() => changeMonth(-1)}>
           <FontAwesomeIcon icon={faAngleLeft} /> {previousMonth}
           </button>
           <div className="currentPeriod"><span>{currentMonthName}</span></div>
-          <button className="arrow" onClick={() => setCurrentMonth(getNextMonth(currentMonth))}>
+          <button className="arrow" onClick={() => changeMonth(1)}>
             {nextMonth} <FontAwesomeIcon icon={faAngleRight} />
           </button>
           <button onClick={downloadPDF}>
@@ -267,10 +309,10 @@ const Chart: React.FC = () => {
             verticalAlign="bottom"
             align="left"
             iconType="rect"
-            wrapperStyle={{ bottom: 0, fontSize: '11px' }}
+            wrapperStyle={{ bottom: 3, fontSize: '11px' }}
           />
           <Bar dataKey="planned" fill="#475466" barSize={20} name="План" />
-          <Line type="monotone" dataKey="actual" stroke="#DF6336" name="Факт" />
+          <Line type="monotone" dataKey="actual" stroke="#DF6336" strokeWidth="2" name="Факт" dot={false} />
         </ComposedChart>
       </ResponsiveContainer>
       </div>

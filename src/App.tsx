@@ -22,7 +22,8 @@ import { fetchData } from './api';
 
 const App: React.FC = () => {
   const [isAuthenticated, setIsAuthenticated] = React.useState<boolean>(false);
-  const { setUserData } = useUserContext(); // Используем контекст
+  const [loading, setLoading] = React.useState<boolean>(true);
+  const { setUserData } = useUserContext();
 
   React.useEffect(() => {
     const authenticate = async () => {
@@ -41,10 +42,15 @@ const App: React.FC = () => {
           console.error('Ошибка при входе:', err);
         }
       }
+      setLoading(false); // Завершаем загрузку
     };
 
     authenticate();
   }, [setUserData]);
+
+  if (loading) {
+    return <div>Загрузка...</div>;
+  }
 
   return (
     <Router>

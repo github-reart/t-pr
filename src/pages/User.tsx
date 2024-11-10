@@ -12,6 +12,8 @@ interface UserProps {
   setIsAuthenticated: React.Dispatch<React.SetStateAction<boolean>>;
 }
 
+type ShowPasswordKeys = 'login' | 'newUser' | number;
+
 const User: React.FC<UserProps> = ({ setIsAuthenticated }) => {
   const { user, userId, pass, setUserData } = useUserContext();
   const [username, setUsername] = useState<string>('');
@@ -20,6 +22,16 @@ const User: React.FC<UserProps> = ({ setIsAuthenticated }) => {
   const [newUserPassword, setNewUserPassword] = useState<string>('');
   const [users, setUsers] = useState<UserData[]>([]);
   const [passwords, setPasswords] = useState<{ [key: number]: string }>({});
+  
+  const [showPassword, setShowPassword] = useState<{
+    login: boolean;
+    newUser: boolean;
+    users: { [key: number]: boolean };
+  }>({
+    login: false,
+    newUser: false,
+    users: {} // Для динамического списка пользователей
+  });
 
   const hashPassword = async (password: string): Promise<string> => {
     const encoder = new TextEncoder();
@@ -34,7 +46,7 @@ const User: React.FC<UserProps> = ({ setIsAuthenticated }) => {
     const hashedPassword = await hashPassword(password);
     try {
       const result = await fetchData('/api/auth', 'POST', { name: username, pass: hashedPassword });
-  
+
       if (result.success) {
         setUserData(result.user.name, result.user.id, result.user.pass);
         localStorage.setItem('user', result.user.name);
@@ -50,11 +62,10 @@ const User: React.FC<UserProps> = ({ setIsAuthenticated }) => {
       alert('Неверные учетные данные');
     }
   };
-  
 
-  const fetchUsers = async (name: string, pass: string) => {
+  const fetchUsers = async (user: string, pass: string) => {
     try {
-      const data: UserData[] = await fetchData('/api/users/list', 'POST', { adminName: name, adminPass: pass });
+      const data: UserData[] = await fetchData('/api/users/list', 'POST', { adminName: user, adminPass: pass });
       setUsers(data);
     } catch (err) {
       console.error('Ошибка при получении пользователей:', err);
@@ -73,7 +84,7 @@ const User: React.FC<UserProps> = ({ setIsAuthenticated }) => {
     localStorage.removeItem('pass');
     setIsAuthenticated(false);
     setUsername('');
-    setPassword('');    
+    setPassword('');
   };
 
   const handleChangePassword = async (id: number) => {
@@ -115,6 +126,22 @@ const User: React.FC<UserProps> = ({ setIsAuthenticated }) => {
     }
   };
 
+  const toggleShowPassword = (key: ShowPasswordKeys) => {
+    setShowPassword(prev => {
+      if (typeof key === "string") {
+        return { ...prev, [key]: !prev[key] };
+      } else {
+        return { 
+          ...prev, 
+          users: {
+            ...prev.users,
+            [key]: !prev.users[key]
+          }
+        };
+      }
+    });
+  };
+
   const adminBlock = () => {
     return (
       <div className="admin-block">
@@ -135,11 +162,19 @@ const User: React.FC<UserProps> = ({ setIsAuthenticated }) => {
                 <td>{name}</td>
                 <td>
                   <input
-                    type="password"
+                    type={showPassword.users[id] ? 'text' : 'password'}
                     value={passwords[id] || ''}
                     onChange={(e) => setPasswords({ ...passwords, [id]: e.target.value })}
                     placeholder="Новый пароль"
                   />
+                  <label>
+                    <input
+                      type="checkbox"
+                      checked={showPassword.users[id] || false}
+                      onChange={() => toggleShowPassword(id)}
+                    />
+                    показать
+                  </label>
                 </td>
                 <td>
                   <button className="user-change" onClick={() => handleChangePassword(id)}>Сменить</button>
@@ -151,7 +186,7 @@ const User: React.FC<UserProps> = ({ setIsAuthenticated }) => {
         </table>
 
         <h3>Добавить нового пользователя</h3>
-        <form className="userAddBlock" onSubmit={handleAddUser}>
+        <form className="user-add" onSubmit={handleAddUser}>
           <input
             type="text"
             placeholder="Логин"
@@ -160,12 +195,20 @@ const User: React.FC<UserProps> = ({ setIsAuthenticated }) => {
             required
           />
           <input
-            type="password"
+            type={showPassword.newUser ? 'text' : 'password'}
             placeholder="Пароль"
             value={newUserPassword}
             onChange={(e) => setNewUserPassword(e.target.value)}
             required
           />
+          <label>
+            <input
+              type="checkbox"
+              checked={showPassword.newUser}
+              onChange={() => toggleShowPassword('newUser')}
+            />
+            показать 
+          </label>
           <button type="submit">Добавить</button>
         </form>
       </div>
@@ -190,11 +233,19 @@ const User: React.FC<UserProps> = ({ setIsAuthenticated }) => {
             onChange={(e) => setUsername(e.target.value)}
           />
           <input
-            type="password"
+            type={showPassword.login ? 'text' : 'password'}
             placeholder="Пароль"
             value={password}
             onChange={(e) => setPassword(e.target.value)}
           />
+          <label>
+            <input
+              type="checkbox"
+              checked={showPassword.login}
+              onChange={() => toggleShowPassword('login')}
+            />
+            Показать пароль
+          </label>
           <button type="submit">Войти</button>
         </form>
       )}

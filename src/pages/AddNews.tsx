@@ -1,12 +1,13 @@
 import React, { useEffect, useState, useMemo } from 'react';
 import { useParams, useNavigate, useLocation } from 'react-router-dom';
-import { locationData, sourceData, typeData, themeData, emotionalData, newsData } from '../data';
 import CustomModal from '../components/CustomModal';
+import { fetchData } from '../api';
+import { useUserContext } from '../components/UserContext';
 
 interface FormData {
   id: string;
   location: number;
-  publicationDate: string;
+  publicationdate: string;
   title: string;
   source: number;
   link: string;
@@ -24,11 +25,12 @@ const AddNews: React.FC = () => {
   const { id } = useParams<{ id?: string }>();
   const navigate = useNavigate();
   const location = useLocation();
+  const { user, pass } = useUserContext();
 
   const initialFormData: FormData = useMemo(() => ({
     id: '',
     location: 0,
-    publicationDate: new Date().toISOString().split('T')[0],
+    publicationdate: new Date().toISOString().split('T')[0],
     title: '',
     source: 0,
     link: '',
@@ -42,20 +44,58 @@ const AddNews: React.FC = () => {
   const [currentField, setCurrentField] = useState<string>('');
   const [inputValues, setInputValues] = useState<{ id: number; name: string }[]>([]);
   const [modalTitle, setModalTitle] = useState<string>('');
+  const [locationData, setLocationData] = useState<OptionData[]>([]);
+  const [sourceData, setSourceData] = useState<OptionData[]>([]);
+  const [typeData, setTypeData] = useState<OptionData[]>([]);
+  const [themeData, setThemeData] = useState<OptionData[]>([]);
+  const [emotionalData, setEmotionalData] = useState<OptionData[]>([]);
 
   useEffect(() => {
+    fetchLocationData();
+    fetchSourceData();
+    fetchTypeData();
+    fetchThemeData();
+    fetchEmotionalData();
+    
     if (id) {
-      const newsItem = newsData.find((item) => item.id.toString() === id);
-      if (newsItem) {
-        setFormData({
-          ...newsItem,
-          id: newsItem.id.toString(),
-        });
-      }
-    } else {
-      setFormData(initialFormData);
+      fetchNewsData();
     }
-  }, [id, initialFormData]);
+  }, [id]);
+
+  const loadData = async (url: string, method: string, data: any = null): Promise<any> => {
+    const payload = { ...data, adminName: user, adminPass: pass };
+    return await fetchData(url, method, payload);
+  };
+
+  const fetchLocationData = async () => {
+    const data: OptionData[] = await loadData('/api/location/list', 'POST', null);
+    setLocationData(data);
+  };
+
+  const fetchSourceData = async () => {
+    const data: OptionData[] = await loadData('/api/source/list', 'POST', null);
+    setSourceData(data);
+  };
+
+  const fetchTypeData = async () => {
+    const data: OptionData[] = await loadData('/api/type/list', 'POST', null);
+    setTypeData(data);
+  };
+
+  const fetchThemeData = async () => {
+    const data: OptionData[] = await loadData('/api/theme/list', 'POST', null);
+    setThemeData(data);
+  };
+
+  const fetchEmotionalData = async () => {
+    const data: OptionData[] = await loadData('/api/emotional/list', 'POST', null);
+    setEmotionalData(data);
+  };
+
+  const fetchNewsData = async () => {
+    const data: FormData = await fetchData(`/api/news/${id}`, 'POST', {id, adminName: user, adminPass: pass});
+    setFormData(data);
+  };
 
   const handleChange = (e: React.ChangeEvent<HTMLSelectElement | HTMLInputElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
@@ -65,14 +105,12 @@ const AddNews: React.FC = () => {
     }));
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    const maxId = newsData.length > 0 ? Math.max(...newsData.map(item => item.id)) : 0;
-
     const newsToUpdate = {
-      id: formData.id ? Number(formData.id) : maxId+1,
+      id: formData.id || undefined,
       location: formData.location,
-      publicationDate: formData.publicationDate,
+      publicationdate: formData.publicationdate,
       title: formData.title,
       source: formData.source,
       link: formData.link,
@@ -82,17 +120,13 @@ const AddNews: React.FC = () => {
     };
 
     if (formData.id) {
-      const index = newsData.findIndex(item => item.id === newsToUpdate.id);
-      if (index !== -1) {
-        newsData[index] = newsToUpdate;
-      }
+      await loadData(`/api/news/update/${formData.id}`, 'PUT', newsToUpdate);
     } else {
-      newsData.push(newsToUpdate);
+      await loadData('/api/news/add', 'POST', newsToUpdate);
     }
 
-    console.log("Данные формы отправлены: ", newsToUpdate);
     const searchParams = new URLSearchParams(location.search).toString();
-    navigate(`/news?${searchParams}#news-${newsToUpdate.id}`);
+    navigate(`/news?${searchParams}#news-${id}`);
   };
 
   const openModal = (field: string, label: string, data: OptionData[]) => {
@@ -117,28 +151,34 @@ const AddNews: React.FC = () => {
     setInputValues(prev => [...prev, { id: newId, name: '' }]);
   };
 
-  const saveChanges = () => {
+  const saveChanges = async () => {
     const updatedValues = inputValues.filter(item => item.name.trim() !== '');
-
     if (currentField === 'location') {
-      locationData.splice(0, locationData.length, ...updatedValues);
+      await loadData('/api/location/edit', 'POST', {values: updatedValues});
     } else if (currentField === 'source') {
-      sourceData.splice(0, sourceData.length, ...updatedValues);
+      await loadData('/api/source/edit', 'POST', {values: updatedValues});
     } else if (currentField === 'type') {
-      typeData.splice(0, typeData.length, ...updatedValues);
+      await loadData('/api/type/edit', 'POST', {values: updatedValues});
     } else if (currentField === 'theme') {
-      themeData.splice(0, themeData.length, ...updatedValues);
+      await loadData('/api/theme/edit', 'POST', {values: updatedValues});
     } else if (currentField === 'emotional') {
-      emotionalData.splice(0, emotionalData.length, ...updatedValues);
+      await loadData('/api/emotional/edit', 'POST', {values: updatedValues});
     }
 
     closeModal();
+    // Обновление данных после добавления
+    fetchLocationData();
+    fetchSourceData();
+    fetchTypeData();
+    fetchThemeData();
+    fetchEmotionalData();
   };
 
+  
   return (
     <div className="center">
       <h1>{id ? 'Редактировать новость' : 'Добавить новость'}</h1>
-      <form className="form" onSubmit={handleSubmit}>
+      <form className="form news-form" onSubmit={handleSubmit}>
         <div>
           <label>Территория размещения</label>
           <div className="select-button-group">
@@ -156,8 +196,8 @@ const AddNews: React.FC = () => {
           <label>Дата публикации</label>
           <input 
             type="date" 
-            name="publicationDate" 
-            value={formData.publicationDate} 
+            name="publicationdate" 
+            value={formData.publicationdate} 
             onChange={handleChange} 
             required 
           />
