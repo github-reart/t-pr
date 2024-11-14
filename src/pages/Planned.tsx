@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import CustomModal from '../components/CustomModal';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faXmark, faAngleLeft, faAngleRight } from '@fortawesome/free-solid-svg-icons';
+import { faTrashAlt, faAngleLeft, faAngleRight } from '@fortawesome/free-solid-svg-icons';
 import { fetchData } from '../api';
 import { useUserContext } from '../components/UserContext';
 
@@ -257,7 +257,7 @@ const Planned: React.FC = () => {
               className="reset-button" 
               title='удалить плановое значение' 
               onClick={deletePlannedValue}>
-              <FontAwesomeIcon icon={faXmark} />
+              <FontAwesomeIcon icon={faTrashAlt} />
             </button>
           </div>
         </div>

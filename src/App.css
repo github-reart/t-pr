@@ -137,7 +137,7 @@ textarea {
   left: 100%;
   top: 0;
   background-color: #EBEDF0;
-  padding: 10px;
+  padding: 0;
   text-transform: uppercase;
   line-height: 1.3;
 }
@@ -145,27 +145,29 @@ textarea {
 .sub-menu h3 {
   color: #808A96;
   font-size: 14px;
+  padding: 10px;
 }
 
 .sub-menu .sidebar-link {
   height: auto;
   color: #475466;
   font-size: 14px;
-  padding-top: 5px;
-  padding-bottom: 5px;
+  padding: 10px;
+  padding-top: 15px;
+  padding-bottom: 15px;
   text-transform: uppercase;
   font-weight: bold;
   text-decoration: none;
 }
 
 .sub-menu .sidebar-link:hover {
-  color: #F15922;
+  background-color: #808A96;
+  color: #FFF;
 }
 
-#user-button {
+.sidebar-button:last-child {
   margin-top: auto;
 }
-
 
 .news-block {
   background-color: #EBEDF0;
@@ -302,39 +304,39 @@ select {
 }
 
 
-.edit-news .container {
+.modal .container {
   display: flex;
   width: 100%;
   margin: 0 auto;
 }
 
-.edit-news .column {
+.modal .column {
   flex: 1;
   text-align: center;
 }
 
-.edit-news input[type="date" ] {
+.modal input[type="date" ] {
   padding: 3px;
   text-align: center;
   height: 30px;
 }
 
-.edit-news select {
+.modal select {
   width: 100%;
   height: 30px;
   margin-bottom: 10px;
 }
 
-.edit-news .column:last-child {
+.modal .column:last-child {
   padding-left: 10px;
 }
 
-.edit-news textarea {
+.modal textarea {
   width: 100%;
   margin-bottom: 7px;
 }
 
-.edit-news button[type="submit"] {
+.modal button[type="submit"] {
   width: 100%;
 }
 
@@ -360,11 +362,12 @@ select {
   z-index: 999;
 }
 
-.modal input {
+.modal input:not([type="checkbox"]) {
   display: block;
   width: 100%;
   margin-bottom: 10px;
 }
+
 
 .modal-close {
   position: absolute;
@@ -601,7 +604,6 @@ select {
   border: 1px solid #808A96;
   font-size: 16px;
   padding: 5px 10px;
-
 }
 
 .top-buttons button.arrow:hover {
@@ -679,7 +681,9 @@ button,
 }
 
 .calendar-button:hover,
-.reset-button:hover {
+.reset-button:hover,
+.user-del:hover,
+.user-change:hover {
   border-color: #EBEDF0;
   background-color: #EBEDF0;
   color: #F15922;
@@ -690,23 +694,15 @@ button,
   margin-right: 5px;
 }
 
-.user-form {
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
-  align-items: center;
-  height: calc(100vh - 65px);
-}
-
-.user-form h2 {
+.user-block h2 {
   margin-bottom: 20px;
 }
 
-.user-form .form {
+.user-block .form {
   width: 300px;
 }
 
-.user-form input {
+.user-block input {
   margin-bottom: 5px;
   margin-top: 5px;
 }
@@ -716,15 +712,37 @@ input[type="checkbox"] {
   margin-right: 10px;
 }
 
-.user-form button {
+.user-block button {
   padding: 10px 20px;
   cursor: pointer;
 }
 
+
+
+.admin-block table {
+  border: 1px solid black;
+  border-collapse: collapse;
+  margin-top: 0;
+}
+
+.admin-block table thead th {
+  background-color: #808A96;
+  color: #FFF;
+  font-size: 14px;
+  font-weight: normal;
+  padding: 3px;
+}
+
 .admin-block tbody td {
   vertical-align: top;
-  padding: 3px;
-  padding-top: 12px;
+  padding: 10px;
+  padding-top: 18px;
+  padding-bottom: 3px;
+  border: 1px solid #808A96;
+}
+
+.admin-block td:first-child {
+  text-align: center;
 }
 
 .admin-block td input:not([type="checkbox"]) {

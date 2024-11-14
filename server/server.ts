@@ -57,15 +57,21 @@ const requireAdmin = async (req: express.Request, res: express.Response, next: e
 
 // Проверка доступов 
 app.use(async (req, res, next) => {
-    if (req.path === '/api/auth') {
+    // Не требуют авторизации
+    const allowedPaths = ['/api/auth', '/api/planned', '/api/news', '/api/location/list',
+        '/api/type/list'
+    ];
+    if (allowedPaths.includes(req.path)) {
         return next();
     }
+    // Только для администратора
     if (req.path.startsWith('/api/users/')) {
         await requireAdmin(req, res, next);
-    } else {
+    } else { // Все остальные требуют авторизации
         await requireUser(req, res, next);
     }
 });
+
 
 
 app.post('/api/auth', async (req, res) => {
@@ -213,7 +219,7 @@ app.delete('/api/news/del', async (req, res) => {
 
 app.post('/api/users/list', async (req, res) => {
     try {
-        const result = await pool.query('SELECT * FROM users');
+        const result = await pool.query('SELECT * FROM users ORDER BY ID ASC');
         res.json(result.rows);
     } catch (err) {
         handleError(res, err);

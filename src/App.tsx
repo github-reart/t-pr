@@ -61,19 +61,18 @@ const App: React.FC = () => {
           <div className="content">
             <Routes>
               <Route path="/user" element={<User setIsAuthenticated={setIsAuthenticated} />} />
-              {isAuthenticated ? (
+              {isAuthenticated && (
                 <>
                   <Route path="/" element={<Content />} />
                   <Route path="/news" element={<News />} />
                   <Route path="/add-news/:id?" element={<AddNews />} />
-                  <Route path="/stat" element={<Stat />} />
-                  <Route path="/planned" element={<Planned />} />
-                  <Route path="/table" element={<Table />} />
-                  <Route path="/chart" element={<Chart />} />
                 </>
-              ) : (
-                <Route path="/" element={<Navigate to="/user" />} />
               )}
+                <Route path="/stat" element={<Stat />} />
+                <Route path="/planned" element={<Planned />} />
+                <Route path="/table" element={<Table />} />
+                <Route path="/chart" element={<Chart />} />
+                <Route path="/" element={<Navigate to="/chart" />} />
             </Routes>
           </div>
         </div>

@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faPencilAlt, faTrashAlt, faPlus, faCalendarDays, faXmark } from '@fortawesome/free-solid-svg-icons';
+import { faPencilAlt, faTrashAlt, faCirclePlus, faCalendarDays, faXmark } from '@fortawesome/free-solid-svg-icons';
 import { fetchData } from '../api';
 import { useUserContext } from '../components/UserContext';
 import Modal from 'react-modal';
@@ -292,7 +292,7 @@ const News: React.FC = () => {
           <button className="reset-button" onClick={handleResetClick}><FontAwesomeIcon icon={faXmark} /> сброс</button>
           <Link to="/add-news" className="add-news-button">
             <button>
-              <FontAwesomeIcon icon={faPlus} /> Добавить новость
+              <FontAwesomeIcon icon={faCirclePlus} /> Добавить новость
             </button>
           </Link>
         </div>
@@ -325,7 +325,7 @@ const News: React.FC = () => {
       <Modal
         isOpen={isModalOpen}
         onRequestClose={handleModalClose}
-        className="modal edit-news"
+        className="modal"
         overlayClassName="modal-overlay"
         ariaHideApp={false}
       >

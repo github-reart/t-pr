@@ -1,46 +1,193 @@
-# Getting Started with Create React App
+# Инструкция по развертыванию проекта на сервере
 
-This project was bootstrapped with [Create React App](https://github.com/facebook/create-react-app).
+Данная инструкция поможет развернуть проект на **React** с использованием **TypeScript**, **Express** и **PostgreSQL** на сервере, а также внести изменения и собрать его для продакшн-окружения.
 
-## Available Scripts
+## Содержание
 
-In the project directory, you can run:
+1. [Подготовка сервера](#1-подготовка-сервера)
+   - [1.1 Установка необходимых зависимостей](#11-установка-необходимых-зависимостей)
+   - [1.2 Клонирование репозитория](#12-клонирование-репозитория)
+   - [1.3 Установка зависимостей](#13-установка-зависимостей)
+   - [1.4 Установка Express (если он не установлен)](#14-установка-express-если-он-не-установлен)
+2. [Настройка базы данных](#2-настройка-базы-данных)
+   - [Пример создания базы данных и пользователя](#пример-создания-базы-данных-и-пользователя)
+   - [Первоначальное создание таблиц в базе данных PostgreSQL](#первоначальное-создание-таблиц-в-базе-данных-postgresql)
+3. [Настройка серверной части](#3-настройка-серверной-части)
+   - [3.1 Настройка ts-node (если не установлен)](#31-настройка-ts-node-если-не-установлен)
+   - [3.2 Запуск серверной части](#32-запуск-серверной-части)
+   - [3.3 Запуск с nodemon (опционально)](#33-запуск-с-nodemon-опционально)
+   - [3.4 Настройка порта Express](#34-настройка-порта-express)
+4. [Запуск клиентской части](#4-запуск-клиентской-части)
+5. [Сборка проекта для продакшн](#5-сборка-проекта-для-продакшн)
+   - [5.1 Обновление git](#51-обновление-git)
+   - [5.2 Сборка проекта](#52-сборка-проекта)
+   - [5.3 Отключение обновления git](#53-отключение-обновления-git)
+6. [Настройка HTTPS](#6-настройка-https)
 
-### `npm start`
+---
 
-Runs the app in the development mode.\
-Open [http://localhost:3000](http://localhost:3000) to view it in the browser.
+## 1. Подготовка сервера
 
-The page will reload if you make edits.\
-You will also see any lint errors in the console.
+### 1.1 Установка необходимых зависимостей
 
-### `npm test`
+Убедитесь, что на сервере установлены следующие компоненты:
 
-Launches the test runner in the interactive watch mode.\
-See the section about [running tests](https://facebook.github.io/create-react-app/docs/running-tests) for more information.
+- **Node.js**
+- **npm** (входит в комплект Node.js)
+- **PostgreSQL**
+- **TypeScript** (для сборки кода)
 
-### `npm run build`
+### 1.2 Клонирование репозитория
 
-Builds the app for production to the `build` folder.\
-It correctly bundles React in production mode and optimizes the build for the best performance.
+Клонируйте репозиторий проекта через git и перейдите в папку проекта:
 
-The build is minified and the filenames include the hashes.\
-Your app is ready to be deployed!
+```bash
+git clone https://github.com/github-reart/t-pr.git
+cd t-pr
+```
 
-See the section about [deployment](https://facebook.github.io/create-react-app/docs/deployment) for more information.
+### 1.3 Установка зависимостей
 
-### `npm run eject`
+В корневой папке проекта выполните:
 
-**Note: this is a one-way operation. Once you `eject`, you can’t go back!**
+```bash
+npm install
+```
 
-If you aren’t satisfied with the build tool and configuration choices, you can `eject` at any time. This command will remove the single build dependency from your project.
+### 1.4 Установка Express (если он не установлен)
 
-Instead, it will copy all the configuration files and the transitive dependencies (webpack, Babel, ESLint, etc) right into your project so you have full control over them. All of the commands except `eject` will still work, but they will point to the copied scripts so you can tweak them. At this point you’re on your own.
+Если по какой-то причине Express не был установлен, вы можете установить его, выполнив следующую команду в корневой папке проекта:
 
-You don’t have to ever use `eject`. The curated feature set is suitable for small and middle deployments, and you shouldn’t feel obligated to use this feature. However we understand that this tool wouldn’t be useful if you couldn’t customize it when you are ready for it.
+```bash
+npm install express
+```
 
-## Learn More
+## 2. Настройка базы данных
 
-You can learn more in the [Create React App documentation](https://facebook.github.io/create-react-app/docs/getting-started).
+1. Создайте базу данных PostgreSQL с именем `t-pr`.
+2. Создайте пользователя `t-pr` и настройте для него пароль.
+3. Проверьте соответствие пароля, имени пользователя, базы и адреса сервера в файле `server/database.ts`.
+4. Создайте таблицы, используя запросы из файла `server/tables.sql`.
+5. Убедитесь, что ваш сервер PostgreSQL работает и настроен для подключения из вашего приложения.
 
-To learn React, check out the [React documentation](https://reactjs.org/).
+### Пример создания базы данных и пользователя
+
+```sql
+CREATE DATABASE "t-pr";
+CREATE USER "t-pr" WITH ENCRYPTED PASSWORD 't-pr';
+GRANT ALL PRIVILEGES ON DATABASE "t-pr" TO "t-pr";
+```
+
+### Первоначальное создание таблиц в базе данных PostgreSQL
+
+Перед тем как запустить проект, необходимо создать таблицы в базе данных PostgreSQL, используя SQL-запросы из файла `server/tables.sql`. Существует несколько способов сделать это:
+
+#### Вариант 1: Использование командной строки psql
+
+1. Откройте терминал.
+2. Подключитесь к PostgreSQL с помощью команды:
+   ```bash
+   psql -U t-pr -d t-pr -h localhost -p 5432
+   ```
+   Введите пароль для пользователя `t-pr`.
+
+3. После подключения выполните команду:
+   ```sql
+   \i /path/t-pr/server/tables.sql
+   ```
+   Замените `/path/t-pr/` на фактический путь к папке вашего проекта.
+
+#### Вариант 2: Использование графического интерфейса, такого как pgAdmin
+
+1. Откройте pgAdmin и войдите в свою учетную запись.
+2. Найдите свою базу данных `t-pr` в дереве объектов слева.
+3. Нажмите правой кнопкой мыши на базе данных и выберите `Query Tool`.
+4. Откройте файл `tables.sql` в редакторе и вставьте его содержимое в окно запроса.
+5. Нажмите кнопку "Execute" для выполнения запросов.
+
+## 3. Настройка серверной части
+
+### 3.1 Настройка ts-node (если не установлен)
+
+Если `ts-node` еще не установлен, добавьте его как глобальную зависимость:
+
+```bash
+npm install -g ts-node
+```
+
+### 3.2 Запуск серверной части
+
+Запустите серверную часть проекта:
+
+```bash
+npx ts-node server/server.ts
+```
+
+### 3.3 Запуск с nodemon (опционально)
+
+Если вы хотите использовать автоматическую перезагрузку сервера при внесении изменений в код, установите `nodemon`:
+
+```bash
+npm install -g nodemon
+```
+
+И запустите сервер с nodemon:
+
+```bash
+nodemon server/server.ts
+```
+
+### 3.4 Настройка порта Express
+
+Настройка порта для Express-сервера находится в файле `server/server.ts`. По умолчанию используется порт `5001`, если переменная окружения `PORT` не задана.
+
+## 4. Запуск клиентской части
+
+Перейдите в корневую папку проекта и запустите фронтенд:
+
+```bash
+npm start
+```
+
+## 5. Сборка проекта для продакшн
+
+### 5.1 Обновление git
+
+Перед сборкой убедитесь, что все изменения сохранены в git:
+
+```bash
+git add .
+git commit -m "Save changes"
+```
+
+### 5.2 Сборка проекта
+
+Выполните команду для сборки проекта:
+
+```bash
+npm run build
+```
+
+### 5.3 Отключение обновления git
+
+Если вам не нужно автоматически увеличивать версию приложения перед сборкой, измените `"build"` скрипт в `package.json`:
+
+Замените:
+```json
+"build": "npm version patch && react-scripts build",
+```
+
+на:
+```json
+"build": "react-scripts build",
+```
+
+## 6. Настройка HTTPS
+
+Для работы функции шифрования паролей в sha-256 необходимо запустить приложение на HTTPS.
+
+---
+
+После выполнения всех шагов приложение будет запущено на сервере.
+
+Данная инструкция предоставляет основные сведения о развертывании приложения на сервере. Для получения дополнительной информации или помощи, пожалуйста, свяжитесь с технической поддержкой компании «Реарт» (reart.ru).

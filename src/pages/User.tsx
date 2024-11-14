@@ -1,4 +1,6 @@
 import React, { useEffect, useState } from 'react';
+import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
+import { faTrashAlt, faCirclePlus } from '@fortawesome/free-solid-svg-icons';
 import { useUserContext } from '../components/UserContext';
 import { fetchData } from '../api';
 
@@ -12,55 +14,28 @@ interface UserProps {
   setIsAuthenticated: React.Dispatch<React.SetStateAction<boolean>>;
 }
 
-type ShowPasswordKeys = 'login' | 'newUser' | number;
+type ShowPasswordKeys = 'newUser' | number;
 
-const User: React.FC<UserProps> = ({ setIsAuthenticated }) => {
-  const { user, userId, pass, setUserData } = useUserContext();
-  const [username, setUsername] = useState<string>('');
-  const [password, setPassword] = useState<string>('');
+const User: React.FC<UserProps> = () => {
+  const { user, userId, pass } = useUserContext();
   const [newUserName, setNewUserName] = useState<string>('');
   const [newUserPassword, setNewUserPassword] = useState<string>('');
   const [users, setUsers] = useState<UserData[]>([]);
   const [passwords, setPasswords] = useState<{ [key: number]: string }>({});
   
   const [showPassword, setShowPassword] = useState<{
-    login: boolean;
     newUser: boolean;
     users: { [key: number]: boolean };
   }>({
-    login: false,
     newUser: false,
-    users: {} // Для динамического списка пользователей
+    users: {}
   });
 
   const hashPassword = async (password: string): Promise<string> => {
     const encoder = new TextEncoder();
     const data = encoder.encode(password);
     const hashBuffer = await crypto.subtle.digest('SHA-256', data);
-    const hashArray = Array.from(new Uint8Array(hashBuffer));
-    return hashArray.map(b => ('00' + b.toString(16)).slice(-2)).join('');
-  };
-
-  const handleLogin = async (e: React.FormEvent) => {
-    e.preventDefault();
-    const hashedPassword = await hashPassword(password);
-    try {
-      const result = await fetchData('/api/auth', 'POST', { name: username, pass: hashedPassword });
-
-      if (result.success) {
-        setUserData(result.user.name, result.user.id, result.user.pass);
-        localStorage.setItem('user', result.user.name);
-        localStorage.setItem('pass', result.user.pass);
-        setIsAuthenticated(true);
-        
-        if (result.user.id === 1) {
-          await fetchUsers(result.user.name, result.user.pass);
-        }        
-      }
-    } catch (err) {
-      console.error('Ошибка при входе:', err);
-      alert('Неверные учетные данные');
-    }
+    return Array.from(new Uint8Array(hashBuffer)).map(b => ('00' + b.toString(16)).slice(-2)).join('');
   };
 
   const fetchUsers = async (user: string, pass: string) => {
@@ -76,16 +51,7 @@ const User: React.FC<UserProps> = ({ setIsAuthenticated }) => {
     if (userId === 1 && user && pass) {
       fetchUsers(user, pass);
     }
-  }, [user, pass]);
-
-  const handleLogout = () => {
-    setUserData(null, null, null);
-    localStorage.removeItem('user');
-    localStorage.removeItem('pass');
-    setIsAuthenticated(false);
-    setUsername('');
-    setPassword('');
-  };
+  }, [user, pass, userId]);
 
   const handleChangePassword = async (id: number) => {
     const newPassword = passwords[id];
@@ -144,9 +110,36 @@ const User: React.FC<UserProps> = ({ setIsAuthenticated }) => {
 
   const adminBlock = () => {
     return (
-      <div className="admin-block">
+      <>
+        <h3>Добавить нового пользователя</h3>
+        <form className="user-add" onSubmit={handleAddUser}>
+          <input
+            type="text"
+            placeholder="Логин"
+            value={newUserName}
+            onChange={(e) => setNewUserName(e.target.value)}
+            required
+          />
+          <input
+            type={showPassword.newUser ? 'text' : 'password'}
+            placeholder="Пароль"
+            value={newUserPassword}
+            onChange={(e) => setNewUserPassword(e.target.value)}
+            required
+          />
+          <label>
+            <input
+              type="checkbox"
+              checked={showPassword.newUser}
+              onChange={() => toggleShowPassword('newUser')}
+            />
+            показать 
+          </label>
+          <button type="submit"><FontAwesomeIcon icon={faCirclePlus} /> Добавить</button>
+        </form>
+
         <h3>Список пользователей</h3>
-        <table>
+        <table className="user-table">
           <thead>
             <tr>
               <th>ID</th>
@@ -178,78 +171,22 @@ const User: React.FC<UserProps> = ({ setIsAuthenticated }) => {
                 </td>
                 <td>
                   <button className="user-change" onClick={() => handleChangePassword(id)}>Сменить</button>
-                  <button className="user-del" onClick={() => handleDeleteUser(id)}>Удалить</button>
+                  <button className="user-del" onClick={() => handleDeleteUser(id)}><FontAwesomeIcon icon={faTrashAlt} /></button>
                 </td>
               </tr>
             ))}
           </tbody>
         </table>
-
-        <h3>Добавить нового пользователя</h3>
-        <form className="user-add" onSubmit={handleAddUser}>
-          <input
-            type="text"
-            placeholder="Логин"
-            value={newUserName}
-            onChange={(e) => setNewUserName(e.target.value)}
-            required
-          />
-          <input
-            type={showPassword.newUser ? 'text' : 'password'}
-            placeholder="Пароль"
-            value={newUserPassword}
-            onChange={(e) => setNewUserPassword(e.target.value)}
-            required
-          />
-          <label>
-            <input
-              type="checkbox"
-              checked={showPassword.newUser}
-              onChange={() => toggleShowPassword('newUser')}
-            />
-            показать 
-          </label>
-          <button type="submit">Добавить</button>
-        </form>
-      </div>
+      </>
     );
   };
 
   return (
-    <div className="user-form">
-      {user ? (
-        <div>
-          <h2>Добро пожаловать, {user}</h2>
-          <button onClick={handleLogout}>Выйти</button>
-          {userId === 1 && adminBlock()}
-        </div>
-      ) : (
-        <form className="form" onSubmit={handleLogin}>
-          <h2>Авторизация</h2>
-          <input
-            type="text"
-            placeholder="Логин"
-            value={username}
-            onChange={(e) => setUsername(e.target.value)}
-          />
-          <input
-            type={showPassword.login ? 'text' : 'password'}
-            placeholder="Пароль"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-          />
-          <label>
-            <input
-              type="checkbox"
-              checked={showPassword.login}
-              onChange={() => toggleShowPassword('login')}
-            />
-            Показать пароль
-          </label>
-          <button type="submit">Войти</button>
-        </form>
-      )}
-    </div>
+    <>
+      <div className="admin-block">
+        {userId === 1 && adminBlock()}
+      </div>
+    </>
   );
 };
 
